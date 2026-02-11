@@ -1,126 +1,140 @@
 const express = require('express');
-const fs = require('fs');
+const mongoose = require('mongoose');
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
 const app = express();
 
-// --- CONFIGURATION ---
+// --- PRODUCTION CONFIGURATION ---
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(__dirname)); 
 
-const ACCOUNTS_DIR = path.join(__dirname, 'accounts');
-if (!fs.existsSync(ACCOUNTS_DIR)) {
-    console.log(">> SYSTEM_NOTICE: INITIALIZING TITAN_DATABASE...");
-    fs.mkdirSync(ACCOUNTS_DIR);
-}
+// --- MONGODB CONNECTION ---
+const MONGO_URI = "mongodb+srv://anamuyt66tt_db_user:wbEIKDFt6Fl8YSAO@cluster0.my8z8ya.mongodb.net/?appName=Cluster0";
 
-// Helper to ensure user directories exist
-const getPilotDir = (username) => {
-    const userDir = path.join(ACCOUNTS_DIR, username);
-    if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
-    return userDir;
-};
+mongoose.connect(MONGO_URI)
+    .then(() => console.log(">> DATABASE_SYNC: [ CONNECTED TO CLUSTER0 ]"))
+    .catch(err => console.error(">> DATABASE_SYNC_FAILURE:", err));
 
-// --- GATEWAY STATUS PAGE ---
-app.get('/', (req, res) => {
+// --- DATA MODELS (DATABASE SCHEMAS) ---
+const UserSchema = new mongoose.Schema({
+    username: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    level: { type: Number, default: 1 },
+    xp: { type: Number, default: 0 },
+    wins: { type: Number, default: 0 },
+    streak: { type: Number, default: 0 },
+    coins: { type: Number, default: 0 },
+    inventory: { type: [String], default: [] },
+    upgrades: {
+        streak: { type: Number, default: 0 },
+        xp: { type: Number, default: 0 },
+        coin: { type: Number, default: 0 }
+    }
+});
+
+const User = mongoose.model('User', UserSchema);
+
+// --- MASTER GATEWAY STATUS ---
+app.get('/status', (req, res) => {
     res.send(`
         <body style="background:#050508; color:#00f2ff; font-family:monospace; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; border: 10px solid #ff0055; margin:0;">
             <h1 style="color:#ff0055; letter-spacing:10px; font-size:3rem; text-shadow: 0 0 20px #ff0055;">TITAN_OS: MASTER_CORE</h1>
             <div style="background:rgba(0,242,255,0.05); padding:30px; border:1px solid #333; box-shadow: 0 0 30px rgba(0,0,0,1);">
                 <p style="color:#00f2ff;">> NEURAL_GATEWAY: [ ACTIVE ]</p>
-                <p style="color:#00ff66;">> DATABASE_SYNC: [ STABLE ]</p>
-                <p style="color:#ffcc00;">> PORT_LISTENER: 3000</p>
-                <p style="color:#ff0055;">> SHOP_MODULE: [ INTEGRATED ]</p>
+                <p style="color:#00ff66;">> DATABASE_SYNC: [ MONGODB_CONNECTED ]</p>
+                <p style="color:#ffcc00;">> PORT_LISTENER: ${process.env.PORT || 3000}</p>
+                <p style="color:#ff0055;">> HOST: RENDER_PRODUCTION</p>
             </div>
         </body>
     `);
 });
 
-// --- BANKING CORE ---
+// --- AUTHENTICATION MODULES ---
+app.post('/signup', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const existingUser = await User.findOne({ username });
+        if (existingUser) return res.json({ success: false, message: "ID_TAKEN" });
 
-// Fetch coins
-app.get('/get-coins/:username', (req, res) => {
-    const { username } = req.params;
-    const coinFile = path.join(getPilotDir(username), 'coin.txt');
-    if (!fs.existsSync(coinFile)) fs.writeFileSync(coinFile, "0");
-    const balance = fs.readFileSync(coinFile, 'utf8').trim();
-    res.json({ success: true, coins: parseInt(balance) || 0 });
+        const newUser = new User({ username, password });
+        await newUser.save();
+        console.log(`[AUTH] New Pilot Enrolled: ${username}`);
+        res.json({ success: true, data: newUser });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "SERVER_ERROR" });
+    }
 });
 
-// Unified Update/Save Coins (Supports both /save-coins and /update-coins)
-const handleCoinUpdate = (req, res) => {
+app.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const user = await User.findOne({ username, password });
+        if (!user) return res.json({ success: false, message: "NOT_FOUND_OR_INVALID" });
+
+        console.log(`[AUTH] Pilot Linked: ${username}`);
+        res.json({ success: true, data: user });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "SERVER_ERROR" });
+    }
+});
+
+// --- BANKING & PROGRESSION MODULES ---
+app.get('/get-coins/:username', async (req, res) => {
+    const user = await User.findOne({ username: req.params.username });
+    res.json({ success: true, coins: user ? user.coins : 0 });
+});
+
+app.post('/update-coins', async (req, res) => {
     const { username, coins } = req.body;
-    const coinFile = path.join(getPilotDir(username), 'coin.txt');
-    fs.writeFileSync(coinFile, coins.toString());
-    console.log(`[BANK] ${username} balance adjusted to: ${coins}₮`);
-    res.json({ success: true });
-};
-app.post('/save-coins', handleCoinUpdate);
-app.post('/update-coins', handleCoinUpdate);
-
-// --- SHOP & COLLECTION CORE ---
-
-// Save Inventory (collection.json)
-app.post('/update-collection', (req, res) => {
-    const { username, items } = req.body;
-    const colFile = path.join(getPilotDir(username), 'collection.json');
-    fs.writeFileSync(colFile, JSON.stringify(items, null, 2));
-    console.log(`[SHOP] ${username} collection updated.`);
+    await User.findOneAndUpdate({ username }, { coins });
+    console.log(`[BANK] ${username} credits updated: ${coins}₮`);
     res.json({ success: true });
 });
 
-// Save Upgrades (optional server-side persistence)
-app.post('/update-upgrades', (req, res) => {
-    const { username, upgrades } = req.body;
-    const upFile = path.join(getPilotDir(username), 'upgrades.json');
-    fs.writeFileSync(upFile, JSON.stringify(upgrades, null, 2));
-    res.json({ success: true });
-});
-
-// --- AUTH & PROGRESSION ---
-
-app.post('/signup', (req, res) => {
-    const { username, password } = req.body;
-    const userDir = path.join(ACCOUNTS_DIR, username);
-    if (fs.existsSync(userDir)) return res.json({ success: false, message: "ID_TAKEN" });
-
-    getPilotDir(username);
-    fs.writeFileSync(path.join(userDir, 'pass.txt'), password);
-    fs.writeFileSync(path.join(userDir, 'levels.txt'), JSON.stringify({ level: 1, xp: 0, wins: 0, streak: 0 }));
-    fs.writeFileSync(path.join(userDir, 'coin.txt'), "0");
-    res.json({ success: true });
-});
-
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const userDir = path.join(ACCOUNTS_DIR, username);
-    if (!fs.existsSync(userDir)) return res.json({ success: false, message: "NOT_FOUND" });
-    if (fs.readFileSync(path.join(userDir, 'pass.txt'), 'utf8') !== password) return res.json({ success: false, message: "WRONG_PASS" });
-
-    const data = JSON.parse(fs.readFileSync(path.join(userDir, 'levels.txt'), 'utf8'));
-    res.json({ success: true, data });
-});
-
-app.post('/save', (req, res) => {
+app.post('/save', async (req, res) => {
     const { username, data } = req.body;
-    fs.writeFileSync(path.join(getPilotDir(username), 'levels.txt'), JSON.stringify(data));
+    // Data contains: level, xp, wins, streak
+    await User.findOneAndUpdate({ username }, { 
+        level: data.level, 
+        xp: data.xp, 
+        wins: data.wins, 
+        streak: data.streak 
+    });
     res.json({ success: true });
 });
 
-app.get('/leaderboard', (req, res) => {
-    const users = fs.readdirSync(ACCOUNTS_DIR);
-    const leaderData = users.map(u => {
-        const p = path.join(ACCOUNTS_DIR, u, 'levels.txt');
-        return fs.existsSync(p) ? { username: u, ...JSON.parse(fs.readFileSync(p)) } : null;
-    }).filter(x => x).sort((a, b) => b.level - a.level || b.wins - a.wins);
+// --- SHOP & COLLECTION ---
+app.post('/update-collection', async (req, res) => {
+    const { username, items } = req.body;
+    await User.findOneAndUpdate({ username }, { inventory: items });
+    res.json({ success: true });
+});
+
+app.post('/update-upgrades', async (req, res) => {
+    const { username, upgrades } = req.body;
+    await User.findOneAndUpdate({ username }, { upgrades: upgrades });
+    res.json({ success: true });
+});
+
+// --- GLOBAL LEADERBOARD ---
+app.get('/leaderboard', async (req, res) => {
+    const leaderData = await User.find({})
+        .sort({ level: -1, wins: -1 })
+        .limit(10)
+        .select('username level wins -_id');
     res.json(leaderData);
 });
 
-const PORT = 3000;
+// --- RENDER ROUTING FIX ---
+// This ensures that when people visit your site, the server knows which files to show.
+app.get('/shop', (req, res) => res.sendFile(path.join(__dirname, 'shop.html')));
+app.get('/game', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n>> TITAN_OS MASTER SERVER ONLINE [PORT ${PORT}]`);
-    console.log(`>> ALL SYSTEMS (BANKING, SHOP, AUTH) INTEGRATED\n`);
 });
