@@ -2,381 +2,351 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TITAN_OS: COMBAT_CORE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@500;700&family=Fira+Code:wght@400;700&display=swap');
-        :root { --bg: #050508; --red: #ff0055; --blue: #00f2ff; --gold: #ffcc00; --xp-color: #00ff66; --glow: rgba(255, 0, 85, 0.5); --boss-glow: 0px 0px 30px red; }
-        * { box-sizing: border-box; touch-action: manipulation; user-select: none; }
-        body, html { margin: 0; padding: 0; background-color: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; height: 100vh; width: 100vw; overflow: hidden; }
-        #bg-canvas { position: fixed; inset: 0; z-index: -1; opacity: 0.4; }
-        .grid-overlay { position: fixed; inset: 0; background-image: linear-gradient(rgba(0,242,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,0.03) 1px, transparent 1px); background-size: 60px 60px; pointer-events: none; }
-        #game-interface { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; }
-        #particle-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 2000; }
-        
-        .rank-bar { height: 45px; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-size: 0.7rem; letter-spacing: 5px; color: var(--blue); z-index: 100; border-bottom: 2px solid #111; }
-        .ui-top { height: 120px; display: flex; justify-content: space-evenly; align-items: center; z-index: 10; }
-        .player-card { padding: 20px 40px; background: rgba(0,0,0,0.8); border: 2px solid #222; min-width: 220px; text-align: center; position: relative; transition: 0.3s; }
-        .player-card.active.p1 { border-color: var(--red); box-shadow: 0 0 40px var(--glow); transform: scale(1.05); }
-        .player-card.active.p2 { border-color: var(--blue); box-shadow: 0 0 40px rgba(0, 242, 255, 0.3); transform: scale(1.05); }
-        .score { font-size: 4rem; font-weight: 900; font-family: 'Orbitron'; line-height: 1; display: block; }
-        
-        .stage { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
-        #board { display: grid; background: #000; padding: 15px; border: 2px solid #1a1a1a; box-shadow: 0 0 50px rgba(0,0,0,1); }
-        .dot { width: 12px; height: 12px; background: #444; border-radius: 50%; z-index: 3; }
-        .line { background: #1a1a1a; cursor: pointer; z-index: 2; transition: background 0.2s, box-shadow 0.2s; border-radius: 2px; }
-        .line:hover:not(.taken) { background: #333; }
-        .line.taken.p1 { background: var(--red) !important; box-shadow: 0 0 20px var(--red); }
-        .line.taken.p2 { background: var(--blue) !important; box-shadow: 0 0 20px var(--blue); }
-        
-        .box { transition: background 0.4s, opacity 0.4s; opacity: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-        .box.filled { opacity: 0.9 !important; } 
-        .box.filled.p1 { background: var(--red) !important; box-shadow: inset 0 0 40px #600; text-shadow: 0 0 10px black; }
-        .box.filled.p2 { background: var(--blue) !important; box-shadow: inset 0 0 40px #004; }
 
-        #boss-overlay { position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; background: radial-gradient(circle, rgba(30,0,0,0.98) 0%, #000 100%); }
-        #ascii-skull { font-family: 'Fira Code'; color: var(--red); font-size: 10px; line-height: 9px; white-space: pre; z-index: 2; text-shadow: var(--boss-glow); text-align: center; }
-        .pixel-target { position: absolute; width: 60px; height: 60px; background: var(--red); border: 5px solid #fff; border-radius: 50%; z-index: 2500; box-shadow: 0 0 50px var(--red); cursor: crosshair; }
-        
-        #info-panel, #loss-panel { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; border: 15px solid var(--xp-color); box-shadow: inset 0 0 120px var(--xp-color); }
-        #loss-panel { border-color: var(--red); box-shadow: inset 0 0 120px var(--red); }
-        .escape-title { font-family: 'Orbitron'; font-size: 4rem; color: var(--xp-color); text-shadow: 0 0 40px var(--xp-color); margin: 0; }
-        .loss-title { font-family: 'Orbitron'; font-size: 4rem; color: var(--red); text-shadow: 0 0 40px var(--red); margin: 0; }
-        .info-row { width: 550px; padding: 15px; border-bottom: 2px solid #222; font-family: 'Fira Code'; display: flex; justify-content: space-between; font-size: 1.2rem; }
-        
-        button.hub-btn { margin-top:30px; background:var(--xp-color); color:black; padding:20px 60px; font-family:'Orbitron'; border:none; cursor:pointer; font-weight:900; font-size:1.2rem; transition: 0.3s; }
-        button.hub-btn:hover { box-shadow: 0 0 30px var(--xp-color); transform: scale(1.05); }
-        
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 40% { transform: translate(3px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+        :root {
+            --bg: #050508;
+            --red: #ff0055;
+            --blue: #00f2ff;
+            --gold: #ffcc00;
+            --grid: #111;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; background: var(--bg); color: white; 
+            font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- UI OVERLAYS --- */
+        .hud-top {
+            position: absolute; top: 0; width: 100%; padding: 20px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-sizing: border-box; border-bottom: 1px solid #222; background: rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        .pilot-tag { font-family: 'Orbitron'; color: var(--red); letter-spacing: 2px; }
+        .match-stats { font-family: 'Fira Code'; font-size: 0.8rem; color: var(--blue); }
+
+        /* --- GAME BOARD --- */
+        #game-container {
+            position: relative; padding: 20px; background: rgba(255,255,255,0.02);
+            border: 1px solid #222; box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+
+        canvas { cursor: crosshair; display: block; }
+
+        /* --- TURN INDICATOR --- */
+        .turn-display {
+            margin-top: 20px; font-family: 'Orbitron'; font-size: 1.2rem;
+            padding: 10px 30px; border: 1px solid #333; letter-spacing: 5px;
+            transition: 0.3s;
+        }
+        .player-turn { color: var(--blue); border-color: var(--blue); text-shadow: 0 0 10px var(--blue); }
+        .ai-turn { color: var(--red); border-color: var(--red); text-shadow: 0 0 10px var(--red); }
+
+        /* --- MODALS --- */
+        #result-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            z-index: 1000; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; backdrop-filter: blur(10px);
+        }
+
+        .result-box {
+            padding: 60px; border: 2px solid var(--blue); background: #000;
+            clip-path: polygon(0 20px, 20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+        }
+
+        .result-box h1 { font-family: 'Orbitron'; font-size: 3rem; margin: 0; }
+        .reward-text { color: var(--gold); font-family: 'Fira Code'; margin: 20px 0; font-size: 1.2rem; }
+
+        .btn-action {
+            margin-top: 30px; padding: 15px 40px; background: var(--red);
+            color: white; border: none; font-family: 'Orbitron'; cursor: pointer;
+            transition: 0.3s; font-weight: 900;
+        }
+        .btn-action:hover { transform: scale(1.1); box-shadow: 0 0 30px var(--red); }
+
     </style>
 </head>
-<body onload="initGame();">
+<body>
 
-    <canvas id="bg-canvas"></canvas>
-    <div class="grid-overlay"></div>
-
-    <div id="game-interface">
-        <div class="rank-bar">THREAT_LEVEL: CRITICAL | SYNC_RATE: 98% | PILOT: <span id="pilot-name">---</span></div>
-        <canvas id="particle-canvas"></canvas>
-
-        <div class="ui-top">
-            <div id="p1-card" class="player-card p1 active"><span id="s1" class="score">0</span><small>RED_PILOT</small></div>
-            <div id="p2-card" class="player-card p2"><span id="s2" class="score">0</span><small>BLUE_PILOT</small></div>
+    <div class="hud-top">
+        <div class="pilot-tag" id="pilot-name">PILOT: UNKNOWN</div>
+        <div class="match-stats">
+            SCORE: <span id="score-player" style="color:var(--blue)">0</span> 
+            - VS - 
+            <span id="score-ai" style="color:var(--red)">0</span>
         </div>
+        <div style="font-family:'Orbitron'; color:var(--gold); cursor:pointer;" onclick="location.href='/'">ABORT_MISSION</div>
+    </div>
 
-        <div class="stage">
-            <div id="board"></div>
+    <div id="game-container">
+        <canvas id="dotsCanvas"></canvas>
+    </div>
 
-            <div id="boss-overlay">
-                <div id="ascii-skull">
-                  XXXXXX
-                 XXXXXXXX
-                XX  XX  XX
-                XX  XX  XX
-                 XXXXXXXX
-                  XX  XX
-                  XXXXXX
-                NEURAL_CORRUPTION
-                </div>
-                <div style="font-family:'Orbitron'; font-size:5rem; margin:25px; text-shadow:0 0 30px red;" id="b-timer">30.00</div>
-                <div style="font-family:'Orbitron'; color:var(--gold); font-size:1.8rem; letter-spacing:3px;">ATTACKS LANDED: <span id="px-score">0</span> / 15</div>
-            </div>
+    <div class="turn-display player-turn" id="turn-status">YOUR_TURN</div>
 
-            <div id="info-panel">
-                <div class="escape-title">YOU ESCAPED</div>
-                <div class="info-row"><span>PILOT_ID:</span><span id="final-id" style="color:var(--blue)">---</span></div>
-                <div class="info-row"><span>NEW_LVL:</span><span id="stat-lvl" style="color:var(--gold)">--</span></div>
-                <div class="info-row"><span>CREDITS:</span><span id="stat-coins" style="color:var(--gold)">--</span></div>
-                <div class="info-row"><span>XP_GAIN:</span><span id="stat-xp" style="color:var(--xp-color)">--</span></div>
-                <button class="hub-btn" onclick="window.location.href='index.html'">RETURN TO HUB</button>
-            </div>
-
-            <div id="loss-panel">
-                <div class="loss-title">SYSTEM FAILURE</div>
-                <p style="font-family:'Fira Code'; color:var(--red); font-size:1.5rem;">NEURAL_LINK_SEVERED</p>
-                <button class="hub-btn" style="background:var(--red); color:white;" onclick="window.location.href='index.html'">REBOOT SYSTEM</button>
-            </div>
+    <div id="result-overlay">
+        <div class="result-box" id="result-box">
+            <h1 id="res-title">MISSION_SUCCESS</h1>
+            <div class="reward-text" id="res-reward">+50 XP | +10 CREDITS</div>
+            <button class="btn-action" onclick="location.href='/'">RETURN_TO_HUB</button>
+            <button class="btn-action" style="background:#222; margin-left:10px;" onclick="location.reload()">RE-ENGAGE</button>
         </div>
     </div>
 
-<script>
-    // --- CONFIG & STATE ---
-    const DOTS = 8;
-    const boardSize = (DOTS-1) * (DOTS-1);
-    const currentUser = sessionStorage.getItem('titan_user');
-    const API_URL = "http://localhost:3000";
-    const MAX_LEVEL = 10000;
-    
-    let turn = 1; 
-    let scores = { 1: 0, 2: 0 };
-    let linesTaken = {};
-    let gameEnded = false;
-    let ashMode = false;
-    let bossTimeLeft = 30.0;
-    let attacksLanded = 0;
-    let particles = [];
-    let mySkin = localStorage.getItem(`skin_${currentUser}`) || "🔘";
+    <script src="account.js"></script>
+    <script>
+        /**
+         * COMBAT_CORE: DOTS & BOXES ENGINE
+         */
+        const canvas = document.getElementById('dotsCanvas');
+        const ctx = canvas.getContext('2d');
+        const user = sessionStorage.getItem('titan_user');
+        const userData = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, wins: 0, streak: 0, xp: 0 };
 
-    // --- AUDIO SYSTEM (SYNTHETIC) ---
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSound(freq, type, duration, vol = 0.1) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-    }
+        document.getElementById('pilot-name').innerText = `PILOT: ${user.toUpperCase()}`;
 
-    // --- GOD KEY (F6) ---
-    window.addEventListener('keydown', (e) => {
-        if (e.key === "F6" && !gameEnded) {
-            playSound(1000, 'square', 0.5, 0.2);
-            const boxes = document.querySelectorAll('.box:not(.filled)');
-            boxes.forEach(box => {
-                box.classList.add('filled', 'p1');
-                box.innerText = mySkin;
-                scores[1]++;
-            });
-            document.querySelectorAll('.line').forEach(l => l.classList.add('taken', 'p1'));
-            document.getElementById('s1').innerText = scores[1];
-            triggerBossFight();
-        }
-    });
+        // Grid Configuration
+        const ROWS = 5;
+        const COLS = 5;
+        const SPACING = 80;
+        const OFFSET = 40;
+        const DOT_RADIUS = 5;
 
-    // --- INITIALIZATION ---
-    function initGame() {
-        if (!currentUser) { window.location.href = "index.html"; return; }
-        document.getElementById('pilot-name').innerText = currentUser.toUpperCase();
-        initLayout();
-        initMatrix();
-        animateParticles();
-    }
+        canvas.width = (COLS - 1) * SPACING + OFFSET * 2;
+        canvas.height = (ROWS - 1) * SPACING + OFFSET * 2;
 
-    function initLayout() {
-        const b = document.getElementById('board');
-        const s = document.querySelector('.stage');
-        const availableSize = Math.min(s.offsetHeight - 40, s.offsetWidth - 40);
-        const dW = 12;
-        const bW = Math.floor((availableSize - (DOTS * dW)) / (DOTS - 1));
-        b.style.gridTemplateColumns = `repeat(${DOTS-1}, ${dW}px ${bW}px) ${dW}px`;
-        b.style.gridTemplateRows = `repeat(${DOTS-1}, ${dW}px ${bW}px) ${dW}px`;
-        b.innerHTML = '';
-        for (let r=0; r < 2*DOTS-1; r++) {
-            for (let c=0; c < 2*DOTS-1; c++) {
-                const cell = document.createElement('div');
-                if (r%2===0 && c%2===0) cell.className = 'dot';
-                else if (r%2===0 && c%2!==0) { cell.className = 'line'; setupLine(cell, `h-${r}-${c}`); }
-                else if (r%2!==0 && c%2===0) { cell.className = 'line'; setupLine(cell, `v-${r}-${c}`); }
-                else { cell.className = 'box'; cell.id = `box-${r}-${c}`; }
-                b.appendChild(cell);
+        let lines = []; // {p1, p2, owner}
+        let boxes = []; // {r, c, owner}
+        let playerTurn = true;
+        let pScore = 0;
+        let aiScore = 0;
+
+        // Initialize Boxes
+        for (let r = 0; r < ROWS - 1; r++) {
+            for (let c = 0; c < COLS - 1; c++) {
+                boxes.push({ r, c, owner: null });
             }
         }
-    }
 
-    function setupLine(el, id) {
-        el.dataset.id = id;
-        el.onclick = () => {
-            if (el.classList.contains('taken') || gameEnded || turn !== 1) return;
-            processMove(el, id);
-        };
-    }
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    function processMove(el, id) {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        el.classList.add('taken', turn === 1 ? 'p1' : 'p2');
-        linesTaken[id] = turn;
-        playSound(turn === 1 ? 440 : 330, 'square', 0.1); 
-        const earned = checkBoxes(); 
-        if (earned > 0) {
-            playSound(880, 'sine', 0.3, 0.2);
-            const rect = el.getBoundingClientRect();
-            explode(rect.left, rect.top, turn===1?'#ff0055':'#00f2ff');
-            if (scores[1] + scores[2] === boardSize) triggerBossFight();
-            else if (turn === 2) setTimeout(aiMove, 600);
-        } else {
-            turn = turn === 1 ? 2 : 1;
-            document.getElementById('p1-card').classList.toggle('active');
-            document.getElementById('p2-card').classList.toggle('active');
-            if (turn === 2) setTimeout(aiMove, 600);
-        }
-    }
+            // Draw Boxes (Filled)
+            boxes.forEach(box => {
+                if (box.owner) {
+                    ctx.fillStyle = box.owner === 'P' ? 'rgba(0, 242, 255, 0.1)' : 'rgba(255, 0, 85, 0.1)';
+                    ctx.fillRect(OFFSET + box.c * SPACING, OFFSET + box.r * SPACING, SPACING, SPACING);
+                    ctx.font = "bold 20px Orbitron";
+                    ctx.fillStyle = box.owner === 'P' ? varColor('--blue') : varColor('--red');
+                    ctx.fillText(box.owner, OFFSET + box.c * SPACING + 30, OFFSET + box.r * SPACING + 45);
+                }
+            });
 
-    function checkBoxes() {
-        let earned = 0;
-        for (let r = 1; r < 2 * DOTS - 1; r += 2) {
-            for (let c = 1; c < 2 * DOTS - 1; c += 2) {
-                const box = document.getElementById(`box-${r}-${c}`);
-                if (box && !box.classList.contains('filled')) {
-                    if (linesTaken[`h-${r-1}-${c}`] && linesTaken[`h-${r+1}-${c}`] && linesTaken[`v-${r}-${c-1}`] && linesTaken[`v-${r}-${c+1}`]) {
-                        box.classList.add('filled', turn === 1 ? 'p1' : 'p2');
-                        if (turn === 1) box.innerText = mySkin;
-                        scores[turn]++;
-                        earned++;
-                    }
+            // Draw Possible Lines (Ghost)
+            ctx.strokeStyle = "#111";
+            ctx.lineWidth = 2;
+            for(let i=0; i<COLS; i++) {
+                for(let j=0; j<ROWS; j++) {
+                    // Vertical lines
+                    if(j < ROWS-1) drawLine(i, j, i, j+1, "#111");
+                    // Horizontal lines
+                    if(i < COLS-1) drawLine(i, j, i+1, j, "#111");
+                }
+            }
+
+            // Draw Active Lines
+            lines.forEach(line => {
+                drawLine(line.p1.x, line.p1.y, line.p2.x, line.p2.y, line.owner === 'P' ? varColor('--blue') : varColor('--red'), 4);
+            });
+
+            // Draw Dots
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    ctx.beginPath();
+                    ctx.arc(OFFSET + c * SPACING, OFFSET + r * SPACING, DOT_RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = "#444";
+                    ctx.fill();
                 }
             }
         }
-        document.getElementById('s1').innerText = scores[1];
-        document.getElementById('s2').innerText = scores[2];
-        return earned;
-    }
 
-    function aiMove() {
-        if (gameEnded || turn === 1) return;
-        const allLines = Array.from(document.querySelectorAll('.line:not(.taken)'));
-        if (allLines.length === 0) return;
-        let move = findCompletingMove() || findSafeMove(allLines);
-        if (!move) move = allLines[Math.floor(Math.random() * allLines.length)];
-        processMove(move, move.dataset.id);
-    }
+        function drawLine(x1, y1, x2, y2, color, width = 2) {
+            ctx.beginPath();
+            ctx.moveTo(OFFSET + x1 * SPACING, OFFSET + y1 * SPACING);
+            ctx.lineTo(OFFSET + x2 * SPACING, OFFSET + y2 * SPACING);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.stroke();
+        }
 
-    function findCompletingMove() {
-        const lines = document.querySelectorAll('.line:not(.taken)');
-        for (let l of lines) { if (checkPotentialBoxes(l.dataset.id).some(count => count === 3)) return l; }
-        return null;
-    }
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
 
-    function findSafeMove(allLines) {
-        const shuffled = allLines.sort(() => Math.random() - 0.5);
-        for (let l of shuffled) { if (!checkPotentialBoxes(l.dataset.id).some(count => count === 2)) return l; }
-        return null;
-    }
+        canvas.addEventListener('mousedown', (e) => {
+            if (!playerTurn) return;
 
-    function checkPotentialBoxes(lineId) {
-        const parts = lineId.split('-');
-        const type = parts[0], r = parseInt(parts[1]), c = parseInt(parts[2]);
-        let counts = [];
-        if (type === 'h') { counts.push(countSides(r - 1, c), countSides(r + 1, c)); }
-        else { counts.push(countSides(r, c - 1), countSides(r, c + 1)); }
-        return counts.filter(n => n !== null);
-    }
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
 
-    function countSides(r, c) {
-        if (!document.getElementById(`box-${r}-${c}`)) return null;
-        let count = 0;
-        if (linesTaken[`h-${r-1}-${c}`]) count++;
-        if (linesTaken[`h-${r+1}-${c}`]) count++;
-        if (linesTaken[`v-${r}-${c-1}`]) count++;
-        if (linesTaken[`v-${r}-${c+1}`]) count++;
-        return count;
-    }
-
-    function triggerBossFight() {
-        gameEnded = true; 
-        if (scores[1] <= scores[2]) { showLoss(); return; } 
-        ashMode = true; 
-        document.getElementById('boss-overlay').style.display = 'flex';
-        document.body.style.animation = "shake 0.1s infinite";
-        playSound(100, 'sawtooth', 1, 0.3);
-        const timer = setInterval(() => {
-            bossTimeLeft -= 0.05;
-            document.getElementById('b-timer').innerText = Math.max(0, bossTimeLeft).toFixed(2);
-            if (bossTimeLeft <= 0) { clearInterval(timer); if (attacksLanded < 15) showLoss(); }
-            if (!ashMode) clearInterval(timer);
-        }, 50);
-        const spawner = setInterval(() => { if (ashMode && attacksLanded < 15) spawnTarget(); else clearInterval(spawner); }, 1000);
-    }
-
-    function spawnTarget() {
-        const t = document.createElement('div');
-        t.className = 'pixel-target'; 
-        t.style.left = Math.random()*80+10+'%'; 
-        t.style.top = Math.random()*80+10+'%';
-        t.onclick = () => { 
-            attacksLanded++; 
-            playSound(600 + (attacksLanded * 20), 'triangle', 0.1);
-            document.getElementById('px-score').innerText = attacksLanded; 
-            t.remove(); 
-            if(attacksLanded >= 15) showEscape(); 
-        };
-        document.getElementById('boss-overlay').appendChild(t);
-        setTimeout(() => t.remove(), 1500);
-    }
-
-    // --- UPDATED WIN SYSTEM ---
-    async function showEscape() {
-        ashMode = false;
-        document.body.style.animation = "none";
-        document.getElementById('boss-overlay').style.display = 'none';
-        document.getElementById('info-panel').style.display = 'flex';
-        playSound(1200, 'sine', 0.5, 0.2);
-
-        // 1. Calculate Rewards
-        const upgrades = JSON.parse(localStorage.getItem(`upgrades_${currentUser}`)) || {xp:0, coin:0};
-        const xpEarned = Math.floor(scores[1] * 10 * (1 + upgrades.xp * 0.1));
-        const coinsEarned = Math.floor(10 * (1 + upgrades.coin * 0.1));
-
-        try {
-            // 2. Fetch current user data from Session
-            let data = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, xp: 0, wins: 0, streak: 0 };
-            
-            // 3. Update Win Stats
-            data.wins = (data.wins || 0) + 1;
-            data.streak = (data.streak || 0) + 1;
-            data.xp += xpEarned;
-            
-            // 4. Level Up Logic
-            while(data.xp >= (data.level * 100) && data.level < MAX_LEVEL) { 
-                data.xp -= (data.level * 100); 
-                data.level++; 
+            let bestLine = getNearestLine(mouseX, mouseY);
+            if (bestLine && !isLineTaken(bestLine)) {
+                makeMove(bestLine, 'P');
             }
+        });
 
-            // 5. Update UI Immediately
-            document.getElementById('final-id').innerText = currentUser;
-            document.getElementById('stat-lvl').innerText = data.level;
-            document.getElementById('stat-xp').innerText = `+${xpEarned}`;
-            document.getElementById('stat-coins').innerText = `+${coinsEarned}₮`;
+        function getNearestLine(mx, my) {
+            let bestDist = 20;
+            let line = null;
 
-            // 6. Save Updated Data to Session (Hub will use this)
-            sessionStorage.setItem('titan_data', JSON.stringify(data));
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    // Check Horizontal
+                    if (c < COLS - 1) {
+                        let lx = OFFSET + c * SPACING + SPACING / 2;
+                        let ly = OFFSET + r * SPACING;
+                        let dist = Math.hypot(mx - lx, my - ly);
+                        if (dist < bestDist) { bestDist = dist; line = { p1: { x: c, y: r }, p2: { x: c + 1, y: r } }; }
+                    }
+                    // Check Vertical
+                    if (r < ROWS - 1) {
+                        let lx = OFFSET + c * SPACING;
+                        let ly = OFFSET + r * SPACING + SPACING / 2;
+                        let dist = Math.hypot(mx - lx, my - ly);
+                        if (dist < bestDist) { bestDist = dist; line = { p1: { x: c, y: r }, p2: { x: c, y: r + 1 } }; }
+                    }
+                }
+            }
+            return line;
+        }
 
-            // 7. Sync to Server (Backend)
-            await fetch(`${API_URL}/save`, { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ username: currentUser, data: data }) 
+        function isLineTaken(l) {
+            return lines.some(existing => 
+                (existing.p1.x === l.p1.x && existing.p1.y === l.p1.y && existing.p2.x === l.p2.x && existing.p2.y === l.p2.y)
+            );
+        }
+
+        function makeMove(line, owner) {
+            lines.push({ ...line, owner });
+            let boxesCompleted = checkBoxes(owner);
+            
+            drawBoard();
+            updateScores();
+
+            if (boxesCompleted === 0) {
+                playerTurn = !playerTurn;
+                document.getElementById('turn-status').innerText = playerTurn ? "YOUR_TURN" : "AI_THINKING...";
+                document.getElementById('turn-status').className = `turn-display ${playerTurn ? 'player-turn' : 'ai-turn'}`;
+                if (!playerTurn) setTimeout(aiMove, 600);
+            } else {
+                if(isGameOver()) endGame();
+            }
+        }
+
+        function checkBoxes(owner) {
+            let completed = 0;
+            boxes.filter(b => !b.owner).forEach(box => {
+                const top = lines.some(l => l.p1.y === box.r && l.p2.y === box.r && l.p1.x === box.c && l.p2.x === box.c + 1);
+                const bottom = lines.some(l => l.p1.y === box.r + 1 && l.p2.y === box.r + 1 && l.p1.x === box.c && l.p2.x === box.c + 1);
+                const left = lines.some(l => l.p1.x === box.c && l.p2.x === box.c && l.p1.y === box.r && l.p2.y === box.r + 1);
+                const right = lines.some(l => l.p1.x === box.c + 1 && l.p2.x === box.c + 1 && l.p1.y === box.r && l.p2.y === box.r + 1);
+
+                if (top && bottom && left && right) {
+                    box.owner = owner;
+                    completed++;
+                    if (owner === 'P') pScore++; else aiScore++;
+                }
             });
+            return completed;
+        }
 
-            // 8. Update Credits/Coins in Backend
-            const cRes = await fetch(`${API_URL}/get-coins/${currentUser}`);
-            if (cRes.ok) {
-                const cData = await cRes.json();
-                const newCoinTotal = (cData.coins || 0) + coinsEarned;
-                await fetch(`${API_URL}/update-coins`, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ username: currentUser, coins: newCoinTotal }) 
-                });
+        function aiMove() {
+            if (isGameOver()) return;
+            
+            let availableLines = [];
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (c < COLS - 1) {
+                        let l = { p1: { x: c, y: r }, p2: { x: c + 1, y: r } };
+                        if (!isLineTaken(l)) availableLines.push(l);
+                    }
+                    if (r < ROWS - 1) {
+                        let l = { p1: { x: c, y: r }, p2: { x: c, y: r + 1 } };
+                        if (!isLineTaken(l)) availableLines.push(l);
+                    }
+                }
             }
 
-        } catch(e) { console.error("WIN_SYSTEM_ERROR: ", e); }
-    }
+            if (availableLines.length > 0) {
+                // Simple AI: Random Move
+                const move = availableLines[Math.floor(Math.random() * availableLines.length)];
+                makeMove(move, 'AI');
+            }
+        }
 
-    function showLoss() { ashMode = false; document.body.style.animation = "none"; document.getElementById('boss-overlay').style.display = 'none'; document.getElementById('loss-panel').style.display = 'flex'; playSound(80, 'sawtooth', 0.8, 0.3); }
+        function updateScores() {
+            document.getElementById('score-player').innerText = pScore;
+            document.getElementById('score-ai').innerText = aiScore;
+        }
 
-    function initMatrix() {
-        const c = document.getElementById('bg-canvas'), x = c.getContext('2d');
-        c.width = window.innerWidth; c.height = window.innerHeight;
-        const drops = Array(Math.floor(c.width/20)).fill(1);
-        setInterval(() => {
-            x.fillStyle = "rgba(5,5,8,0.1)"; x.fillRect(0,0,c.width,c.height);
-            x.fillStyle = "#00f2ff"; x.font = "15px monospace";
-            drops.forEach((d, i) => { x.fillText(Math.floor(Math.random()*2), i*20, d*20); if (d*20 > c.height && Math.random() > 0.975) drops[i] = 0; drops[i]++; });
-        }, 50);
-    }
-    function explode(x, y, color) { for(let i=0; i<15; i++) { particles.push({ x, y, c: color, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, a: 1 }); } }
-    function animateParticles() {
-        const c = document.getElementById('particle-canvas'), x = c.getContext('2d');
-        c.width = window.innerWidth; c.height = window.innerHeight;
-        x.clearRect(0,0,c.width,c.height);
-        particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.a -= 0.02; x.globalAlpha = p.a; x.fillStyle = p.c; x.fillRect(p.x, p.y, 4, 4); if(p.a <= 0) particles.splice(i, 1); });
-        requestAnimationFrame(animateParticles);
-    }
-</script>
+        function isGameOver() {
+            return boxes.every(b => b.owner !== null);
+        }
+
+        async function endGame() {
+            const overlay = document.getElementById('result-overlay');
+            const title = document.getElementById('res-title');
+            const reward = document.getElementById('res-reward');
+            overlay.style.display = 'flex';
+
+            if (pScore > aiScore) {
+                title.innerText = "MISSION_SUCCESS";
+                title.style.color = varColor('--blue');
+                
+                // Reward Logic
+                let xpGain = 50;
+                let coinGain = 20;
+
+                userData.xp += xpGain;
+                userData.wins += 1;
+                userData.streak += 1;
+
+                // Level Up Logic
+                const nextLevelXP = 100 + (userData.level - 1) * 50;
+                if (userData.xp >= nextLevelXP) {
+                    userData.level++;
+                    userData.xp = 0;
+                    reward.innerText = `LEVEL_UP: RANK ${userData.level}! +${coinGain}₮`;
+                } else {
+                    reward.innerText = `+${xpGain} XP | +${coinGain} NEURAL_CREDITS`;
+                }
+
+                // Sync with MongoDB via server.js
+                await AccountSystem.saveProgress(user, userData);
+                
+                // Sync Coins
+                const currentCoinsRes = await fetch(`/get-coins/${user}`);
+                const currentCoinsData = await currentCoinsRes.json();
+                await AccountSystem.saveCoins(user, (currentCoinsData.coins || 0) + coinGain);
+
+            } else {
+                title.innerText = "LINK_CORRUPTED";
+                title.style.color = varColor('--red');
+                reward.innerText = "STREAK_TERMINATED. NO REWARDS ACQUIRED.";
+                userData.streak = 0;
+                await AccountSystem.saveProgress(user, userData);
+            }
+        }
+
+        drawBoard();
+    </script>
 </body>
 </html>
