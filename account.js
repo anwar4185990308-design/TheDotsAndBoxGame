@@ -1,66 +1,85 @@
-const AccountSystem = {
-    // Relative URL works perfectly on Render
-    BASE_URL: window.location.origin,
+/**
+ * ACCOUNT.JS - Neural Authentication & Sync Bridge
+ * Manages identity verification and database synchronization.
+ */
 
+const AccountSystem = {
+    // Dynamically detects if running on Localhost or Render
+    apiBase: window.location.origin,
+
+    /**
+     * Authenticates existing Pilot
+     */
     async login(username, password) {
-        console.log(`>> INITIATING_LINK: ${username}...`);
         try {
-            const response = await fetch(`${this.BASE_URL}/login`, {
+            const response = await fetch(`${this.apiBase}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
             const result = await response.json();
-            if (result.success) {
-                sessionStorage.setItem('titan_data', JSON.stringify(result.data));
-                return { success: true, data: result.data };
-            }
-            return { success: false, message: result.message };
+            return result;
         } catch (error) {
-            return { success: false, message: "SERVER_OFFLINE" };
+            console.error("LOGIN_ERROR:", error);
+            return { success: false, message: "SERVER_UNREACHABLE" };
         }
     },
 
+    /**
+     * Registers new Pilot Identity
+     */
     async signup(username, password) {
         try {
-            const response = await fetch(`${this.BASE_URL}/signup`, {
+            const response = await fetch(`${this.apiBase}/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
             const result = await response.json();
-            if (result.success) return { success: true, data: result.data };
-            return { success: false, message: result.message };
+            return result;
         } catch (error) {
-            return { success: false, message: "SERVER_OFFLINE" };
+            console.error("SIGNUP_ERROR:", error);
+            return { success: false, message: "SERVER_UNREACHABLE" };
         }
     },
 
+    /**
+     * Saves combat progress (XP, Wins, Level)
+     */
     async saveProgress(username, data) {
         try {
-            await fetch(`${this.BASE_URL}/save`, {
+            await fetch(`${this.apiBase}/save`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, data })
             });
+            // Update local session to keep Hub in sync
             sessionStorage.setItem('titan_data', JSON.stringify(data));
-            return true;
-        } catch (e) { return false; }
+        } catch (error) {
+            console.error("PROGRESS_SYNC_ERROR:", error);
+        }
     },
 
+    /**
+     * Saves Neural Credits (Coins)
+     */
     async saveCoins(username, coins) {
         try {
-            const response = await fetch(`${this.BASE_URL}/update-coins`, {
+            await fetch(`${this.apiBase}/update-coins`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, coins })
             });
-            return (await response.json()).success;
-        } catch (e) { return false; }
+        } catch (error) {
+            console.error("CREDIT_SYNC_ERROR:", error);
+        }
     },
 
+    /**
+     * Terminates Session
+     */
     logout() {
         sessionStorage.clear();
-        window.location.href = '/'; 
+        window.location.href = 'index.html';
     }
 };
