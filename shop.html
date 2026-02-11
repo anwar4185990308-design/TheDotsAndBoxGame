@@ -117,7 +117,8 @@
 <script>
     // --- CORE LOGIC ---
     const user = sessionStorage.getItem('titan_user');
-    const API_URL = "http://localhost:3000";
+    // FIXED: Use window.location.origin for Render support
+    const API_URL = window.location.origin;
     let balance = 0;
 
     const BOXES = {
@@ -134,34 +135,38 @@
         { id: 'coin', name: 'CREDIT MINER', desc: '+10% Credits per level.', cost: 750 }
     ];
 
-    // --- CUSTOM NOTIFICATION LOGIC ---
     function showNotify(msg, type = 'blue') {
         const overlay = document.getElementById('notification-overlay');
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.innerHTML = `<span>[SYSTEM]: ${msg}</span><button style="background:none; border:none; color:white; cursor:pointer;" onclick="this.parentElement.remove()">×</button>`;
-        
         overlay.appendChild(toast);
-
-        // Auto remove after 5 seconds
         setTimeout(() => {
-            toast.style.animation = 'fadeOut 0.3s forwards';
-            setTimeout(() => toast.remove(), 300);
+            if(toast.parentElement) {
+                toast.style.animation = 'fadeOut 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }
         }, 5000);
     }
 
-    // Initialize Page
     async function init() {
         if(!user) {
             showNotify("UNAUTHORIZED PILOT DETECTED.", "error");
-            setTimeout(() => location.href = 'login.html', 2000);
+            setTimeout(() => location.href = 'index.html', 2000);
             return;
         }
         try {
+            // FIXED: Fetching coins directly from MongoDB
             const res = await fetch(`${API_URL}/get-coins/${user}`);
             const data = await res.json();
             balance = data.coins || 0;
             document.getElementById('coins').innerText = balance.toLocaleString();
+            
+            // Sync Session Storage with DB Coins
+            let sessionData = JSON.parse(sessionStorage.getItem('titan_data')) || {};
+            sessionData.coins = balance;
+            sessionStorage.setItem('titan_data', JSON.stringify(sessionData));
+
         } catch(e) { 
             showNotify("CONNECTION LOST: SERVER OFFLINE", "error"); 
         }
@@ -179,17 +184,19 @@
             </div>
         `).join('');
 
-        let levels = JSON.parse(localStorage.getItem(`upgrades_${user}`)) || { streak: 0, xp: 0, coin: 0 };
+        const userData = JSON.parse(sessionStorage.getItem('titan_data')) || {};
+        const levels = userData.upgrades || { streak: 0, xp: 0, coin: 0 };
+        
         document.getElementById('upgrade-grid').innerHTML = UPGRADES.map(u => `
             <div class="card">
                 <div style="font-family:Orbitron; color:var(--blue); font-weight:900;">${u.name}</div>
                 <div style="font-size:0.8rem; color:#888; margin:10px 0;">${u.desc}</div>
-                <div style="font-family:Fira Code; font-size:1.1rem; color:white;">LVL: ${levels[u.id]}</div>
+                <div style="font-family:Fira Code; font-size:1.1rem; color:white;">LVL: ${levels[u.id] || 0}</div>
                 <button class="buy-btn" onclick="buyUpgrade('${u.id}', ${u.cost})" ${balance < u.cost ? 'disabled' : ''}>UPGRADE (${u.cost}₮)</button>
             </div>
         `).join('');
 
-        const inv = JSON.parse(localStorage.getItem(`inv_${user}`)) || [];
+        const inv = userData.inventory || [];
         const currentSkin = localStorage.getItem(`skin_${user}`) || "";
         document.getElementById('inv-grid').innerHTML = inv.map(item => `
             <div class="inv-item ${item === currentSkin ? 'equipped' : ''}" onclick="selectSkin('${item}')">
@@ -210,11 +217,16 @@
         document.getElementById('coins').innerText = balance.toLocaleString();
 
         const item = box.items[Math.floor(Math.random() * box.items.length)];
-        let inv = JSON.parse(localStorage.getItem(`inv_${user}`)) || [];
-        if(!inv.includes(item)) inv.push(item);
-        localStorage.setItem(`inv_${user}`, JSON.stringify(inv));
+        
+        let sessionData = JSON.parse(sessionStorage.getItem('titan_data')) || {};
+        if(!sessionData.inventory) sessionData.inventory = [];
+        if(!sessionData.inventory.includes(item)) sessionData.inventory.push(item);
+        
+        sessionData.coins = balance;
+        sessionStorage.setItem('titan_data', JSON.stringify(sessionData));
         
         try {
+            // FIXED: Syncing both coins and collection to MongoDB
             await fetch(`${API_URL}/update-coins`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -223,7 +235,7 @@
             await fetch(`${API_URL}/update-collection`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: user, items: inv })
+                body: JSON.stringify({ username: user, items: sessionData.inventory })
             });
             showNotify(`PURCHASE COMPLETE: ${name} OPENED`, "gold");
         } catch(e) { 
@@ -239,17 +251,30 @@
         balance -= cost;
         document.getElementById('coins').innerText = balance.toLocaleString();
 
-        let levels = JSON.parse(localStorage.getItem(`upgrades_${user}`)) || { streak: 0, xp: 0, coin: 0 };
-        levels[id]++;
-        localStorage.setItem(`upgrades_${user}`, JSON.stringify(levels));
+        let sessionData = JSON.parse(sessionStorage.getItem('titan_data')) || {};
+        if(!sessionData.upgrades) sessionData.upgrades = { streak: 0, xp: 0, coin: 0 };
+        sessionData.upgrades[id] = (sessionData.upgrades[id] || 0) + 1;
+        sessionData.coins = balance;
         
-        await fetch(`${API_URL}/update-coins`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ username: user, coins: balance })
-        });
+        sessionStorage.setItem('titan_data', JSON.stringify(sessionData));
         
-        showNotify(`UPGRADE INSTALLED: ${id.toUpperCase()}`, "gold");
+        try {
+            // Sync coins
+            await fetch(`${API_URL}/update-coins`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, coins: balance })
+            });
+            // Sync upgrades
+            await fetch(`${API_URL}/update-upgrades`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, upgrades: sessionData.upgrades })
+            });
+            showNotify(`UPGRADE INSTALLED: ${id.toUpperCase()}`, "gold");
+        } catch(e) {
+            showNotify("SYNC ERROR", "error");
+        }
         render();
     }
 
