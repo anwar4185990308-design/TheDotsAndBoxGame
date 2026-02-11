@@ -49,30 +49,14 @@
         .pilot-info h1 { font-family: 'Orbitron'; font-size: 2.5rem; color: var(--red); margin: 0; text-transform: uppercase; }
         .status-pill { background: rgba(0, 242, 255, 0.1); color: var(--blue); padding: 5px 15px; border-radius: 20px; font-size: 0.7rem; font-family: 'Fira Code'; border: 1px solid var(--blue); }
 
-        /* --- YELLOW SHOP BUTTON --- */
         .shop-nav-btn {
-            background: transparent;
-            border: 2px solid var(--gold);
-            color: var(--gold);
-            font-family: 'Orbitron', sans-serif;
-            font-weight: 900;
-            padding: 8px 25px;
-            cursor: pointer;
-            transition: 0.3s;
-            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
-            box-shadow: inset 0 0 10px rgba(255, 204, 0, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            letter-spacing: 2px;
-            margin-left: 20px;
-            font-size: 0.8rem;
+            background: transparent; border: 2px solid var(--gold); color: var(--gold);
+            font-family: 'Orbitron', sans-serif; font-weight: 900; padding: 8px 25px;
+            cursor: pointer; transition: 0.3s; text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+            box-shadow: inset 0 0 10px rgba(255, 204, 0, 0.1); display: flex;
+            align-items: center; gap: 10px; letter-spacing: 2px; margin-left: 20px; font-size: 0.8rem;
         }
-        .shop-nav-btn:hover {
-            background: var(--gold);
-            color: #000;
-            box-shadow: 0 0 25px var(--gold);
-        }
+        .shop-nav-btn:hover { background: var(--gold); color: #000; box-shadow: 0 0 25px var(--gold); }
 
         .level-section { margin-bottom: 30px; }
         .level-container { width: 100%; background: #0a0a0f; height: 15px; border: 1px solid #333; position: relative; overflow: hidden; box-shadow: inset 0 0 10px #000; }
@@ -89,12 +73,10 @@
         .coin-card { 
             border: 1px solid var(--gold) !important; 
             background: linear-gradient(135deg, rgba(255, 204, 0, 0.05), transparent) !important;
-            box-shadow: inset 0 0 20px rgba(255, 204, 0, 0.05);
-            cursor: pointer;
+            box-shadow: inset 0 0 20px rgba(255, 204, 0, 0.05); cursor: pointer;
         }
         .coin-card:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(255, 204, 0, 0.2); }
         .coin-card .stat-val { color: var(--gold); text-shadow: 0 0 15px rgba(255, 204, 0, 0.3); }
-        .coin-card small { color: var(--gold); opacity: 0.6; }
 
         .leaderboard { background: rgba(0,0,0,0.4); border: 1px solid #222; display: flex; flex-direction: column; position: relative; }
         .lb-header { padding: 15px; background: #0a0a0f; font-family: 'Orbitron'; font-size: 0.75rem; color: var(--gold); border-bottom: 1px solid #333; letter-spacing: 1px; }
@@ -110,7 +92,6 @@
         .launch-btn:hover { background: var(--red); color: white; box-shadow: 0 0 50px var(--red); }
         .logout-link { color: #444; font-family: 'Fira Code'; font-size: 0.7rem; cursor: pointer; text-decoration: underline; margin-top: auto; }
         .logout-link:hover { color: var(--red); }
-
     </style>
 </head>
 <body>
@@ -175,12 +156,10 @@
                     <small>CURRENT_STREAK</small>
                     <div class="stat-val" id="hub-streak">0</div>
                 </div>
-
                 <div class="stat-card coin-card" onclick="fetchNeuralCredits(sessionStorage.getItem('titan_user'))">
                     <small>NEURAL_CREDITS (CLICK TO SYNC)</small>
                     <div class="stat-val" id="hub-coins">0000</div>
                 </div>
-
                 <div class="logout-link" onclick="AccountSystem.logout()">TERMINATE_SESSION.exe</div>
             </div>
 
@@ -188,7 +167,7 @@
                 <div style="text-align:center; color:#222; font-family:'Orbitron'; font-size:5rem; font-weight:900; position:absolute; z-index:-1; opacity:0.1;">TITAN_OS</div>
                 <button class="launch-btn" onclick="location.href='game.html'">INIT_COMBAT_CORE</button>
                 <div style="color:#444; font-size:0.7rem; font-family:'Fira Code'; text-align:center; max-width:300px;">
-                    WARNING: DISCONNECTION DURING COMBAT WILL RESULT IN NEURAL CORRUPTION (STREAK RESET).
+                    WARNING: DISCONNECTION DURING COMBAT WILL RESULT IN NEURAL CORRUPTION.
                 </div>
             </div>
 
@@ -202,16 +181,14 @@
     <script src="account.js"></script>
     <script src="leaderboard.js"></script>
     <script>
+        // Matrix Effect
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         const drops = Array(Math.floor(canvas.width / 18)).fill(1);
-        
         function drawMatrix() {
-            ctx.fillStyle = "rgba(5, 5, 8, 0.15)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#ff0055";
-            ctx.font = "14px Fira Code";
+            ctx.fillStyle = "rgba(5, 5, 8, 0.15)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ff0055"; ctx.font = "14px Fira Code";
             for (let i = 0; i < drops.length; i++) {
                 const text = String.fromCharCode(0x30A0 + Math.random() * 96);
                 ctx.fillText(text, i * 18, drops[i] * 18);
@@ -240,8 +217,8 @@
             const p = document.getElementById(`${type}-pass`).value;
             if(!u || !p) return;
             const btn = event.target;
-            btn.innerText = "LINKING...";
-            btn.disabled = true;
+            btn.innerText = "LINKING..."; btn.disabled = true;
+            
             const res = (type === 'login') ? await AccountSystem.login(u, p) : await AccountSystem.signup(u, p);
             if(res.success) {
                 sessionStorage.setItem('titan_user', u);
@@ -259,17 +236,16 @@
             const coinEl = document.getElementById('hub-coins');
             const statusEl = document.getElementById('sync-status');
             try {
-                const response = await fetch(`http://localhost:3000/get-coins/${username}?t=${Date.now()}`);
-                if(!response.ok) throw new Error();
+                // FIXED: Use relative path for Render
+                const response = await fetch(`/get-coins/${username}?t=${Date.now()}`);
                 const data = await response.json();
                 coinEl.innerText = data.coins.toString().padStart(4, '0');
                 coinEl.style.color = "var(--gold)";
                 statusEl.innerText = "NEURAL_SYNC: 100% | STATUS: ONLINE";
                 statusEl.style.color = "var(--blue)";
             } catch (e) {
-                coinEl.innerText = "OFFL";
-                coinEl.style.color = "var(--red)";
-                statusEl.innerText = "NEURAL_SYNC: 0% | SERVER_UNREACHABLE";
+                coinEl.innerText = "OFFL"; coinEl.style.color = "var(--red)";
+                statusEl.innerText = "NEURAL_SYNC: 0% | SERVER_OFFLINE";
                 statusEl.style.color = "var(--red)";
             }
         }
@@ -278,7 +254,6 @@
             const user = sessionStorage.getItem('titan_user');
             const data = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, wins: 0, streak: 0, xp: 0 };
             
-            // Calculate XP needed for this specific level (standard RPG progression)
             const xpNeeded = 100 + (data.level - 1) * 50; 
             const visualPercent = (data.xp / xpNeeded) * 100;
 
@@ -286,24 +261,16 @@
             document.getElementById('lvl-num').innerText = data.level.toString().padStart(2, '0');
             document.getElementById('hub-wins').innerText = data.wins.toString().padStart(2, '0');
             document.getElementById('hub-streak').innerText = data.streak;
-            
-            // Updated to current_xp / xp_needed format
             document.getElementById('xp-percent').innerText = `${data.xp}/${xpNeeded}`;
             
-            setTimeout(() => { 
-                document.getElementById('level-progress').style.width = visualPercent + "%"; 
-            }, 500);
+            setTimeout(() => { document.getElementById('level-progress').style.width = visualPercent + "%"; }, 500);
 
             const titles = ["RECRUIT", "OPERATIVE", "ELITE", "TITAN", "GHOST"];
             const titleIdx = Math.min(Math.floor(data.level / 5), titles.length - 1);
             document.getElementById('rank-name').innerText = titles[titleIdx];
             
             fetchNeuralCredits(user);
-            setInterval(() => fetchNeuralCredits(user), 10000);
-            
-            if (typeof GlobalLeaderboard !== 'undefined') { 
-                GlobalLeaderboard.fetchAndRender(); 
-            }
+            setInterval(() => fetchNeuralCredits(user), 15000);
         }
     </script>
 </body>
