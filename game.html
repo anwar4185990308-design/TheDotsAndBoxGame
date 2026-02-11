@@ -301,14 +301,14 @@
         setTimeout(() => { if(t) t.remove(); }, 1500);
     }
 
-    async function showEscape() {
+        async function showEscape() {
         ashMode = false;
         document.body.style.animation = "none";
         document.getElementById('boss-overlay').style.display = 'none';
         document.getElementById('info-panel').style.display = 'flex';
         playSound(1200, 'sine', 0.5, 0.2);
 
-        // Calculate Rewards (Sync with DB logic)
+        // 1. Calculate Rewards based on your score
         const xpEarned = scores[1] * 10;
         const coinsEarned = 20;
 
@@ -319,26 +319,32 @@
             data.streak = (data.streak || 0) + 1;
             data.xp += xpEarned;
             
-            const nextLevelXP = 100 + (data.level - 1) * 50;
-            if (data.xp >= nextLevelXP) { 
-                data.xp = 0; 
-                data.level++; 
+            // 2. FIXED: Multi-Level Check (The "While" Loop)
+            // This loop ensures that if you get 500 XP at Level 1, you level up repeatedly
+            let nextLevelXP = 100 + (data.level - 1) * 50;
+            while (data.xp >= nextLevelXP && data.level < MAX_LEVEL) {
+                data.xp -= nextLevelXP; // Deduct the cost of the current level
+                data.level++;           // Increase Rank
+                nextLevelXP = 100 + (data.level - 1) * 50; // Calculate new requirement for NEXT level
             }
 
+            // 3. Update UI
             document.getElementById('final-id').innerText = currentUser;
             document.getElementById('stat-lvl').innerText = data.level;
             document.getElementById('stat-xp').innerText = `+${xpEarned}`;
             document.getElementById('stat-coins').innerText = `+${coinsEarned}₮`;
 
+            // 4. Save to Session
             sessionStorage.setItem('titan_data', JSON.stringify(data));
 
-            // MongoDB SYNC
+            // 5. MongoDB SYNC
             await fetch(`${API_URL}/save`, { 
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
                 body: JSON.stringify({ username: currentUser, data: data }) 
             });
 
+            // 6. Sync Coins
             const cRes = await fetch(`${API_URL}/get-coins/${currentUser}`);
             const cData = await cRes.json();
             const newCoinTotal = (cData.coins || 0) + coinsEarned;
@@ -349,7 +355,7 @@
                 body: JSON.stringify({ username: currentUser, coins: newCoinTotal }) 
             });
 
-        } catch(e) { console.error("SYNC_ERROR: ", e); }
+        } catch(e) { console.error("LEVEL_SYNC_ERROR: ", e); }
     }
 
     function showLoss() { ashMode = false; document.body.style.animation = "none"; document.getElementById('boss-overlay').style.display = 'none'; document.getElementById('loss-panel').style.display = 'flex'; playSound(80, 'sawtooth', 0.8, 0.3); }
@@ -375,3 +381,4 @@
 </script>
 </body>
 </html>
+
