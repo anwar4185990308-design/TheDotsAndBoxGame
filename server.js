@@ -18,7 +18,7 @@ mongoose.connect(MONGO_URI)
     .then(() => console.log(">> DATABASE_SYNC: [ CONNECTED TO CLUSTER0 ]"))
     .catch(err => console.error(">> DATABASE_SYNC_FAILURE:", err));
 
-// --- DATA MODELS (DATABASE SCHEMAS) ---
+// --- DATA MODELS ---
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -27,7 +27,9 @@ const UserSchema = new mongoose.Schema({
     wins: { type: Number, default: 0 },
     streak: { type: Number, default: 0 },
     coins: { type: Number, default: 0 },
-    inventory: { type: [String], default: [] },
+    inventory: { type: [String], default: ["🔘"] },
+    // equippedSkin stores: { emoji: "🔥", primary: "#hex", secondary: "rgba" }
+    equippedSkin: { type: mongoose.Schema.Types.Mixed, default: null },
     upgrades: {
         streak: { type: Number, default: 0 },
         xp: { type: Number, default: 0 },
@@ -83,53 +85,67 @@ app.post('/login', async (req, res) => {
 
 // --- BANKING & PROGRESSION MODULES ---
 app.get('/get-coins/:username', async (req, res) => {
-    const user = await User.findOne({ username: req.params.username });
-    res.json({ success: true, coins: user ? user.coins : 0 });
+    try {
+        const user = await User.findOne({ username: req.params.username });
+        res.json({ success: true, coins: user ? user.coins : 0 });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/update-coins', async (req, res) => {
-    const { username, coins } = req.body;
-    await User.findOneAndUpdate({ username }, { coins });
-    console.log(`[BANK] ${username} credits updated: ${coins}₮`);
-    res.json({ success: true });
+    try {
+        const { username, coins } = req.body;
+        await User.findOneAndUpdate({ username }, { coins });
+        console.log(`[BANK] ${username} credits updated: ${coins}₮`);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// Universal Save Endpoint (Saves level, xp, wins, streak, and skins)
 app.post('/save', async (req, res) => {
-    const { username, data } = req.body;
-    // Data contains: level, xp, wins, streak
-    await User.findOneAndUpdate({ username }, { 
-        level: data.level, 
-        xp: data.xp, 
-        wins: data.wins, 
-        streak: data.streak 
-    });
-    res.json({ success: true });
+    try {
+        const { username, data } = req.body;
+        await User.findOneAndUpdate({ username }, { 
+            level: data.level, 
+            xp: data.xp, 
+            wins: data.wins, 
+            streak: data.streak,
+            equippedSkin: data.equippedSkin, // Stores the color theme and emoji
+            inventory: data.inventory,
+            upgrades: data.upgrades
+        });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // --- SHOP & COLLECTION ---
 app.post('/update-collection', async (req, res) => {
-    const { username, items } = req.body;
-    await User.findOneAndUpdate({ username }, { inventory: items });
-    res.json({ success: true });
+    try {
+        const { username, items } = req.body;
+        await User.findOneAndUpdate({ username }, { inventory: items });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/update-upgrades', async (req, res) => {
-    const { username, upgrades } = req.body;
-    await User.findOneAndUpdate({ username }, { upgrades: upgrades });
-    res.json({ success: true });
+    try {
+        const { username, upgrades } = req.body;
+        await User.findOneAndUpdate({ username }, { upgrades: upgrades });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // --- GLOBAL LEADERBOARD ---
 app.get('/leaderboard', async (req, res) => {
-    const leaderData = await User.find({})
-        .sort({ level: -1, wins: -1 })
-        .limit(10)
-        .select('username level wins -_id');
-    res.json(leaderData);
+    try {
+        const leaderData = await User.find({})
+            .sort({ level: -1, wins: -1 })
+            .limit(10)
+            .select('username level wins -_id');
+        res.json(leaderData);
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // --- RENDER ROUTING FIX ---
-// This ensures that when people visit your site, the server knows which files to show.
 app.get('/shop', (req, res) => res.sendFile(path.join(__dirname, 'shop.html')));
 app.get('/game', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
