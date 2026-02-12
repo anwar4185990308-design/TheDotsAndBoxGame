@@ -8,150 +8,143 @@
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@500;700&family=Fira+Code:wght@400;700&display=swap');
         
         :root { 
-            --bg: #050508; --red: #ff0055; --blue: #00f2ff; --gold: #ffcc00; 
-            --surface: rgba(10, 10, 15, 0.9); --glass: rgba(0, 242, 255, 0.05);
+            --bg: #050508; 
+            --red: #ff0055; 
+            --blue: #00f2ff; 
+            --gold: #ffcc00; 
+            --glass: rgba(10, 20, 30, 0.85);
         }
 
         body { 
             margin: 0; background: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; 
-            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column; 
+            background-image: radial-gradient(circle at 50% 50%, #111 0%, #000 100%);
         }
 
-        /* Scanline Effect */
-        body::before {
-            content: " "; position: fixed; inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 100; background-size: 100% 4px, 3px 100%; pointer-events: none;
-        }
-
-        /* --- HEADER --- */
+        /* --- LAYOUT --- */
         header {
-            padding: 20px 40px; background: rgba(0,0,0,0.95); border-bottom: 2px solid #222;
-            display: flex; justify-content: space-between; align-items: center; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center; padding: 20px 40px;
+            border-bottom: 2px solid #222; background: rgba(0,0,0,0.9); z-index: 10;
         }
-        .logo { font-family: 'Orbitron'; font-size: 2.2rem; letter-spacing: 8px; font-weight: 900; text-shadow: 0 0 15px var(--blue); }
-        .pilot-status { font-family: 'Fira Code'; text-align: right; }
-        .stat-line { font-size: 0.85rem; color: #888; margin: 2px 0; }
-        .val { color: var(--gold); }
 
-        /* --- MAIN VIEWPORT --- */
-        .main-container { flex: 1; display: flex; overflow: hidden; position: relative; }
+        .logo { font-family: 'Orbitron'; font-size: 2rem; letter-spacing: 5px; text-shadow: 0 0 20px var(--blue); }
+        .user-info { font-family: 'Fira Code'; text-align: right; }
+        .stat-box { font-size: 0.9rem; color: #888; }
+        .highlight { color: var(--gold); }
 
-        /* LEFT: NAVIGATION */
-        .nav-sidebar {
-            width: 320px; border-right: 1px solid #333; padding: 40px 20px;
-            display: flex; flex-direction: column; gap: 15px; background: rgba(5, 5, 8, 0.8);
+        .main-interface {
+            flex: 1; display: flex; height: 100%; position: relative;
         }
+
+        /* --- LEFT PANEL (MENU) --- */
+        .nav-panel {
+            width: 300px; border-right: 1px solid #333; padding: 40px;
+            display: flex; flex-direction: column; gap: 20px; background: rgba(0,0,0,0.5);
+        }
+
         .nav-btn {
-            width: 100%; padding: 20px; background: var(--glass); border: 1px solid #222;
-            color: white; font-family: 'Orbitron'; font-size: 1rem; text-align: left;
-            cursor: pointer; transition: 0.3s; clip-path: polygon(0 0, 90% 0, 100% 30%, 100% 100%, 0 100%);
+            padding: 20px; border: 1px solid #333; background: transparent; color: white;
+            font-family: 'Orbitron'; font-size: 1.2rem; cursor: pointer; text-align: left;
+            transition: 0.3s; position: relative; overflow: hidden;
         }
-        .nav-btn:hover { background: var(--red); border-color: var(--red); padding-left: 30px; }
-        .nav-btn.active { border-left: 5px solid var(--blue); }
+        .nav-btn:hover { background: var(--red); border-color: var(--red); padding-left: 30px; box-shadow: 0 0 30px rgba(255, 0, 85, 0.4); }
+        .nav-btn::before { content: ''; position: absolute; top: 0; left: 0; width: 5px; height: 100%; background: var(--blue); }
 
-        /* CENTER: DATA FEED (Leaderboard) */
-        .data-feed { flex: 1; padding: 40px; overflow-y: auto; background: rgba(0,0,0,0.3); }
-        .feed-header { 
-            font-family: 'Orbitron'; font-size: 1.5rem; border-bottom: 2px solid var(--blue);
-            margin-bottom: 30px; display: flex; justify-content: space-between;
+        /* --- CENTER PANEL (LEADERBOARD) --- */
+        .content-panel {
+            flex: 1; padding: 40px; overflow-y: auto; position: relative;
         }
+        h2 { border-bottom: 2px solid var(--blue); display: inline-block; padding-bottom: 10px; margin-top: 0; }
+        
+        #lb-content { display: flex; flex-direction: column; gap: 10px; }
+        
+        /* --- RIGHT PANEL (QUESTS & PRESTIGE) --- */
+        .quest-panel {
+            width: 350px; border-left: 1px solid #333; padding: 30px;
+            background: rgba(0,0,0,0.6); display: flex; flex-direction: column;
+        }
+        .quest-card {
+            background: rgba(0, 242, 255, 0.05); border: 1px solid #333; padding: 15px;
+            margin-bottom: 15px; font-family: 'Fira Code'; font-size: 0.8rem;
+            position: relative; transition: 0.3s;
+        }
+        .quest-card.done { border-color: var(--gold); opacity: 0.6; }
+        .quest-reward { color: var(--gold); float: right; }
 
-        /* RIGHT: TACTICAL PANEL (Quests/Prestige) */
-        .tactical-panel {
-            width: 380px; border-left: 1px solid #333; padding: 30px 20px;
-            background: rgba(10, 10, 15, 0.95); display: flex; flex-direction: column;
+        /* REROLL & CLAIM BUTTONS */
+        .action-btn {
+            width: 100%; padding: 12px; font-family: 'Orbitron'; font-size: 0.8rem; 
+            cursor: pointer; border: 1px solid; margin-top: 10px; transition: 0.3s;
         }
-        .panel-title { font-family: 'Orbitron'; color: var(--blue); font-size: 1rem; margin-bottom: 20px; letter-spacing: 2px; }
+        .reroll-btn { background: transparent; border-color: #444; color: #888; }
+        .reroll-btn:hover { border-color: var(--blue); color: var(--blue); }
+        .claim-btn { background: var(--gold); color: black; border: none; font-weight: 900; box-shadow: 0 0 15px var(--gold); }
 
-        /* Quest Cards */
-        .quest-item {
-            background: #0a0a0f; border-left: 3px solid var(--blue); padding: 15px;
-            margin-bottom: 15px; font-family: 'Fira Code'; position: relative;
+        /* PRESTIGE BUTTON */
+        #prestige-box {
+            margin-top: auto; padding: 20px; border: 2px solid #333; text-align: center;
+            opacity: 0.5; pointer-events: none; transition: 0.5s;
         }
-        .quest-item.complete { border-color: var(--gold); opacity: 0.6; }
-        .quest-item.complete::after { content: '✓'; position: absolute; right: 10px; top: 10px; color: var(--gold); }
-        .progress-container { height: 4px; background: #222; margin-top: 10px; width: 100%; }
-        .progress-fill { height: 100%; background: var(--blue); transition: 0.5s; }
-
-        /* Prestige Module */
-        .prestige-module {
-            margin-top: auto; padding: 25px; border: 1px dashed #444; text-align: center;
-            transition: 0.5s;
-        }
-        .prestige-module.ready { border: 2px solid var(--gold); background: rgba(255, 204, 0, 0.05); }
+        #prestige-box.ready { opacity: 1; border-color: var(--gold); pointer-events: auto; box-shadow: 0 0 50px rgba(255, 204, 0, 0.2); }
         .prestige-btn {
-            width: 100%; padding: 15px; background: none; border: 1px solid var(--gold);
-            color: var(--gold); font-family: 'Orbitron'; cursor: pointer; display: none;
+            width: 100%; background: transparent; color: var(--gold); border: none;
+            font-family: 'Orbitron'; font-size: 1.2rem; cursor: pointer; animation: pulse 2s infinite;
         }
-        .prestige-module.ready .prestige-btn { display: block; animation: neonPulse 2s infinite; }
-        @keyframes neonPulse { 0%, 100% { box-shadow: 0 0 5px var(--gold); } 50% { box-shadow: 0 0 20px var(--gold); } }
+        
+        @keyframes pulse { 0% { text-shadow: 0 0 10px var(--gold); } 50% { text-shadow: 0 0 30px var(--gold); } 100% { text-shadow: 0 0 10px var(--gold); } }
 
-        /* Auth Overlay */
-        #auth-gate {
-            position: fixed; inset: 0; background: var(--bg); z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        /* --- MODALS --- */
+        #auth-overlay {
+            position: fixed; inset: 0; background: black; z-index: 9999;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
         }
-        .auth-box { width: 350px; text-align: center; }
-        input { 
-            width: 100%; padding: 15px; background: #111; border: 1px solid #333; 
-            color: white; font-family: 'Fira Code'; margin-bottom: 10px; 
-        }
-        .gate-btn { 
-            width: 100%; padding: 15px; background: var(--blue); color: black; 
-            font-family: 'Orbitron'; font-weight: 900; border: none; cursor: pointer; 
-        }
+        input { background: #111; border: 1px solid #333; color: white; padding: 15px; margin: 10px; width: 300px; font-family: 'Fira Code'; }
+        button.auth { background: var(--blue); color: black; border: none; padding: 15px 40px; cursor: pointer; font-weight: bold; font-family: 'Orbitron'; margin-top: 20px; }
 
     </style>
 </head>
 <body>
 
-    <div id="auth-gate">
-        <div class="auth-box">
-            <h1 class="logo" style="font-size: 3.5rem; margin-bottom: 50px;">TITAN_OS</h1>
-            <input type="text" id="username" placeholder="PILOT_ID">
-            <input type="password" id="password" placeholder="ACCESS_CODE">
-            <button class="gate-btn" onclick="handleAuth()">INITIALIZE_LINK</button>
-            <p id="auth-status" style="font-family: 'Fira Code'; color: var(--red); margin-top: 20px;"></p>
-        </div>
+    <div id="auth-overlay">
+        <h1 class="logo" style="font-size: 4rem; margin-bottom: 40px;">TITAN_OS</h1>
+        <input type="text" id="username" placeholder="PILOT_ID">
+        <input type="password" id="password" placeholder="ACCESS_CODE">
+        <button class="auth" onclick="handleAuth()">INITIALIZE_LINK</button>
+        <div id="auth-msg" style="color: var(--red); margin-top: 20px; font-family: 'Fira Code';"></div>
     </div>
 
     <header>
-        <div class="logo">TITAN_OS</div>
-        <div class="pilot-status">
-            <div id="display-name" style="color: var(--blue); font-weight: bold; font-size: 1.2rem;">PILOT_---</div>
-            <div class="stat-line">RANK: <span id="display-lvl" class="val">0</span> | NEURAL_TIER: <span id="display-prestige" style="color:var(--red)">0</span></div>
-            <div class="stat-line">CREDITS: <span id="display-credits" class="val">0</span>₮</div>
+        <div class="logo">TITAN_OS <span style="font-size: 0.8rem; color: #444;">v2.5.0</span></div>
+        <div class="user-info">
+            <div id="user-display" style="font-size: 1.2rem; font-weight: bold; color: var(--blue);">PILOT: UNKNOWN</div>
+            <div class="stat-box">LEVEL: <span id="user-lvl" class="highlight">0</span> | PRESTIGE: <span id="user-prestige" style="color: var(--red)">0</span></div>
+            <div class="stat-box">CREDITS: <span id="user-credits" class="highlight">0</span>₮</div>
         </div>
     </header>
 
-    <div class="main-container">
-        <div class="nav-sidebar">
-            <button class="nav-btn active" onclick="location.href='game.html'">>> ENGAGE_COMBAT</button>
+    <div class="main-interface">
+        <div class="nav-panel">
+            <button class="nav-btn" onclick="location.href='game.html'">>> ENGAGE_COMBAT</button>
             <button class="nav-btn" onclick="location.href='shop.html'">>> BLACK_MARKET</button>
-            <button class="nav-btn" style="color:#555; cursor:default;">>> SYSTEM_LOGS</button>
-            <button class="nav-btn" style="color:#555; cursor:default;">>> SETTINGS</button>
-            <button class="nav-btn" onclick="AccountSystem.logout()" style="margin-top:auto; border-color:var(--red); color:var(--red);">>> DISCONNECT</button>
+            <button class="nav-btn" style="border-color: #444; color: #888;">>> SYSTEM_SETTINGS</button>
+            <button class="nav-btn" onclick="AccountSystem.logout()" style="margin-top: auto; border-color: var(--red); color: var(--red);">>> TERMINATE_LINK</button>
         </div>
 
-        <div class="data-feed">
-            <div class="feed-header">
-                <span>GLOBAL_LEADERBOARD</span>
-                <span style="font-size: 0.8rem; color: #444;">SAT_LINK: ONLINE</span>
-            </div>
+        <div class="content-panel">
+            <h2>GLOBAL_RANKINGS</h2>
             <div id="lb-content">
-                <div style="font-family:'Fira Code'; color:#444;">SYNCING_RANKINGS...</div>
+                <div style="padding: 20px; color: #666;">CONNECTING TO SAT-LINK...</div>
             </div>
         </div>
 
-        <div class="tactical-panel">
-            <div class="panel-title">DAILY_OBJECTIVES</div>
-            <div id="quest-container">
-                </div>
+        <div class="quest-panel">
+            <h3 style="font-family: 'Orbitron'; color: var(--blue); margin-top: 0;">DAILY_LOGS</h3>
+            <div id="quest-list"></div>
+            <div id="quest-actions"></div>
 
-            <div id="prestige-box" class="prestige-module">
-                <div style="font-family:'Fira Code'; font-size:0.7rem; color:#666; margin-bottom:10px;">PRESTIGE_LOCK: LEVEL 100 REQUIRED</div>
-                <button class="prestige-btn" onclick="initiatePrestige()">INITIATE_PRESTIGE</button>
+            <div id="prestige-box">
+                <div style="font-family: 'Fira Code'; font-size: 0.8rem; color: #888; margin-bottom: 10px;">NEURAL RESET REQUIRED LVL 100</div>
+                <button class="prestige-btn" onclick="triggerPrestige()">INITIATE_PRESTIGE</button>
             </div>
         </div>
     </div>
@@ -159,117 +152,175 @@
     <script src="account.js"></script>
     <script src="leaderboard.js"></script>
     <script>
-        // --- CORE HUB LOGIC ---
+        // --- QUEST TEMPLATES (Generates 100+ Variations) ---
+        const ACTIONS = ["WIN", "EARN", "SECURE", "CONNECT", "OVERLOAD", "DRAIN"];
+        const TARGETS = ["DATA_NODES", "MATCHES", "XP_UNITS", "CREDIT_CELLS", "GRID_LINKS"];
+        
+        function generateUniqueQuests(count = 3) {
+            let quests = [];
+            for(let i=0; i<count; i++) {
+                const act = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+                const tar = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+                const val = (Math.floor(Math.random() * 10) + 1) * 5;
+                quests.push({
+                    id: 'q_' + Math.random().toString(36).substr(2, 9),
+                    desc: `${act} ${val} ${tar}`,
+                    target: val,
+                    progress: 0,
+                    reward: val * 10
+                });
+            }
+            return quests;
+        }
 
+        // --- HUB LOGIC ---
         async function handleAuth() {
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
-            const status = document.getElementById('auth-status');
-
-            if(!u || !p) return status.innerText = "INPUT_REQUIRED";
-            status.innerText = "SYNCING...";
-
+            const msg = document.getElementById('auth-msg');
+            if(!u || !p) { msg.innerText = "INPUT_MISSING"; return; }
+            msg.innerText = "AUTHENTICATING...";
+            
             let res = await AccountSystem.login(u, p);
             if (!res.success) res = await AccountSystem.signup(u, p);
 
             if (res.success) {
                 sessionStorage.setItem('titan_user', u);
                 sessionStorage.setItem('titan_data', JSON.stringify(res.data || { level: 1, xp: 0, prestige: 0 }));
-                location.reload(); 
+                document.getElementById('auth-overlay').style.display = 'none';
+                initHub();
             } else {
-                status.innerText = "ACCESS_DENIED: " + res.message;
+                msg.innerText = "ACCESS_DENIED: " + res.message;
             }
         }
 
-        function initUI() {
+        function initHub() {
             const user = sessionStorage.getItem('titan_user');
             if(!user) return;
-
-            document.getElementById('auth-gate').style.display = 'none';
+            document.getElementById('auth-overlay').style.display = 'none';
             const data = JSON.parse(sessionStorage.getItem('titan_data'));
 
-            document.getElementById('display-name').innerText = "PILOT_" + user.toUpperCase();
-            document.getElementById('display-lvl').innerText = data.level || 1;
-            document.getElementById('display-prestige').innerText = data.prestige || 0;
-
-            // Fetch live credits
-            fetch(`${window.location.origin}/get-coins/${user}`)
-                .then(r => r.json())
-                .then(d => {
-                    document.getElementById('display-credits').innerText = (d.coins || 0).toLocaleString();
-                });
-
-            checkPrestige(data.level);
-            setupQuests(user);
-        }
-
-        // --- PRESTIGE ---
-        function checkPrestige(lvl) {
-            const box = document.getElementById('prestige-box');
-            if(lvl >= 100) {
-                box.classList.add('ready');
-                box.innerHTML = `
-                    <div style="color:var(--gold); font-family:'Orbitron'; font-size:0.8rem; margin-bottom:10px;">NEURAL RESET READY</div>
-                    <button class="prestige-btn" style="display:block;" onclick="initiatePrestige()">ASCEND</button>
-                `;
-            }
-        }
-
-        async function initiatePrestige() {
-            if(!confirm("NEURAL RESET: LEVEL WILL RETURN TO 1. YOU GAIN +1 PRESTIGE RANK (PERMANENT XP BOOST). PROCEED?")) return;
+            document.getElementById('user-display').innerText = `PILOT: ${user.toUpperCase()}`;
+            document.getElementById('user-lvl').innerText = data.level || 1;
+            document.getElementById('user-prestige').innerText = data.prestige || 0;
             
+            fetchCoins(user);
+            checkPrestigeStatus(data);
+            initDailyQuests(user);
+        }
+
+        async function fetchCoins(user) {
+            const res = await fetch(`${window.location.origin}/get-coins/${user}`);
+            const d = await res.json();
+            document.getElementById('user-credits').innerText = d.coins || 0;
+            return d.coins || 0;
+        }
+
+        // --- QUEST LOGIC ---
+        function initDailyQuests(user) {
+            const today = new Date().toDateString();
+            const storageKey = `titan_quests_${user}`;
+            let questData = JSON.parse(localStorage.getItem(storageKey));
+
+            if (!questData || questData.date !== today) {
+                questData = { date: today, quests: generateUniqueQuests(), claimed: false };
+                localStorage.setItem(storageKey, JSON.stringify(questData));
+            }
+            renderQuests(questData);
+        }
+
+        async function rerollQuests() {
+            const user = sessionStorage.getItem('titan_user');
+            const currentCredits = await fetchCoins(user);
+            
+            if (currentCredits < 50) {
+                alert("INSUFFICIENT CREDITS: 50₮ REQUIRED");
+                return;
+            }
+
+            if (!confirm("REROLL LOGS? COST: 50₮")) return;
+
+            // Deduct Credits
+            await fetch(`${window.location.origin}/update-coins`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, coins: currentCredits - 50 })
+            });
+
+            const storageKey = `titan_quests_${user}`;
+            const questData = { date: new Date().toDateString(), quests: generateUniqueQuests(), claimed: false };
+            localStorage.setItem(storageKey, JSON.stringify(questData));
+            initHub();
+        }
+
+        function renderQuests(questData) {
+            const list = document.getElementById('quest-list');
+            const actions = document.getElementById('quest-actions');
+            const allDone = questData.quests.every(q => q.progress >= q.target);
+
+            list.innerHTML = questData.quests.map(q => {
+                const isDone = q.progress >= q.target;
+                return `
+                    <div class="quest-card ${isDone ? 'done' : ''}">
+                        <span class="quest-reward">${q.reward}₮</span>
+                        <div>${q.desc}</div>
+                        <div style="height:2px; background:#222; margin-top:10px;">
+                            <div style="height:100%; background:var(--blue); width:${(q.progress/q.target)*100}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            let actionHtml = '';
+            if (!questData.claimed) {
+                if (allDone) {
+                    actionHtml = `<button class="action-btn claim-btn" onclick="claimRewards()">CLAIM BUNDLE</button>`;
+                } else {
+                    actionHtml = `<button class="action-btn reroll-btn" onclick="rerollQuests()">REROLL LOGS (50₮)</button>`;
+                }
+            } else {
+                actionHtml = `<div style="text-align:center; color:var(--gold); font-size:0.8rem; margin-top:10px;">[ALL_LOGS_SECURED]</div>`;
+            }
+            actions.innerHTML = actionHtml;
+        }
+
+        async function claimRewards() {
+            const user = sessionStorage.getItem('titan_user');
+            const storageKey = `titan_quests_${user}`;
+            const questData = JSON.parse(localStorage.getItem(storageKey));
+            
+            const totalReward = questData.quests.reduce((sum, q) => sum + q.reward, 0);
+            const currentCredits = await fetchCoins(user);
+
+            await fetch(`${window.location.origin}/update-coins`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ username: user, coins: currentCredits + totalReward })
+            });
+
+            questData.claimed = true;
+            localStorage.setItem(storageKey, JSON.stringify(questData));
+            alert(`REWARDS SYNCED: +${totalReward}₮`);
+            initHub();
+        }
+
+        // --- PRESTIGE SYSTEM ---
+        function checkPrestigeStatus(data) {
+            const box = document.getElementById('prestige-box');
+            if (data.level >= 100) { box.classList.add('ready'); }
+        }
+
+        async function triggerPrestige() {
+            if(!confirm("SYSTEM RESET: RETURN TO LVL 1 FOR PERMANENT PRESTIGE RANK?")) return;
             const user = sessionStorage.getItem('titan_user');
             let data = JSON.parse(sessionStorage.getItem('titan_data'));
-            
-            data.level = 1;
-            data.xp = 0;
-            data.prestige = (data.prestige || 0) + 1;
-
+            data.level = 1; data.xp = 0; data.prestige = (data.prestige || 0) + 1;
             sessionStorage.setItem('titan_data', JSON.stringify(data));
             await AccountSystem.saveProgress(user, data);
             location.reload();
         }
 
-        // --- QUESTS ---
-        function setupQuests(user) {
-            const today = new Date().toDateString();
-            const key = `titan_quests_${user}`;
-            let qData = JSON.parse(localStorage.getItem(key));
-
-            if(!qData || qData.date !== today) {
-                qData = {
-                    date: today,
-                    quests: [
-                        { id: 'q1', desc: 'WIN 3 MATCHES', target: 3, progress: 0, reward: 100 },
-                        { id: 'q2', desc: 'EARN 500 XP', target: 500, progress: 0, reward: 50 },
-                        { id: 'q3', desc: 'CRACK 1 BOSS FIGHT', target: 1, progress: 0, reward: 200 }
-                    ]
-                };
-                localStorage.setItem(key, JSON.stringify(qData));
-            }
-            renderQuests(qData.quests);
-        }
-
-        function renderQuests(quests) {
-            const container = document.getElementById('quest-container');
-            container.innerHTML = quests.map(q => {
-                const isDone = q.progress >= q.target;
-                const pct = Math.min(100, (q.progress/q.target)*100);
-                return `
-                    <div class="quest-item ${isDone ? 'complete' : ''}">
-                        <div style="font-size:0.8rem; margin-bottom:5px;">${q.desc}</div>
-                        <div style="font-size:0.6rem; color:#666;">REWARD: ${q.reward}₮</div>
-                        <div class="progress-container">
-                            <div class="progress-fill" style="width:${pct}%; background:${isDone?'var(--gold)':'var(--blue)'}"></div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Run on load
-        if(sessionStorage.getItem('titan_user')) initUI();
-
+        if(sessionStorage.getItem('titan_user')) initHub();
     </script>
 </body>
 </html>
