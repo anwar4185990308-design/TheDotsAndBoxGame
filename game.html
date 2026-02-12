@@ -7,11 +7,11 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@500;700&family=Fira+Code:wght@400;700&display=swap');
         
-        /* The CSS variables now act as "slots" for the skins */
+        /* CSS variables act as "slots" for the database skins */
         :root { 
             --bg: #050508; 
-            --red: #ff0055; /* Default Player Color */
-            --blue: #00f2ff; /* Default AI Color */
+            --red: #ff0055; /* Player Primary - Overwritten by JS */
+            --blue: #00f2ff; /* AI Color */
             --gold: #ffcc00; 
             --xp-color: #00ff66; 
             --glow: rgba(255, 0, 85, 0.5); 
@@ -29,7 +29,6 @@
         .ui-top { height: 120px; display: flex; justify-content: space-evenly; align-items: center; z-index: 10; }
         .player-card { padding: 20px 40px; background: rgba(0,0,0,0.8); border: 2px solid #222; min-width: 220px; text-align: center; position: relative; transition: 0.3s; }
         
-        /* Skins will affect --red for Player 1 */
         .player-card.active.p1 { border-color: var(--red); box-shadow: 0 0 40px var(--red); transform: scale(1.05); }
         .player-card.active.p2 { border-color: var(--blue); box-shadow: 0 0 40px rgba(0, 242, 255, 0.3); transform: scale(1.05); }
         .score { font-size: 4rem; font-weight: 900; font-family: 'Orbitron'; line-height: 1; display: block; }
@@ -53,7 +52,6 @@
         .box.filled.p1 { background: var(--red) !important; box-shadow: inset 0 0 40px rgba(0,0,0,0.6); text-shadow: 0 0 10px black; }
         .box.filled.p2 { background: var(--blue) !important; box-shadow: inset 0 0 40px #004; }
 
-        /* Rest of the panels... */
         #boss-overlay { position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; background: radial-gradient(circle, rgba(30,0,0,0.98) 0%, #000 100%); }
         #ascii-skull { font-family: 'Fira Code'; color: var(--red); font-size: 10px; line-height: 9px; white-space: pre; z-index: 2; text-shadow: var(--boss-glow); text-align: center; }
         .pixel-target { position: absolute; width: 60px; height: 60px; background: var(--red); border: 5px solid #fff; border-radius: 50%; z-index: 2500; box-shadow: 0 0 50px var(--red); cursor: crosshair; }
@@ -64,7 +62,7 @@
         .info-row { width: 550px; padding: 15px; border-bottom: 2px solid #222; font-family: 'Fira Code'; display: flex; justify-content: space-between; font-size: 1.2rem; }
         button.hub-btn { margin-top:30px; background:var(--xp-color); color:black; padding:20px 60px; font-family:'Orbitron'; border:none; cursor:pointer; font-weight:900; font-size:1.2rem; transition: 0.3s; }
         button.hub-btn:hover { box-shadow: 0 0 30px var(--xp-color); transform: scale(1.05); }
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 40% { transform: translate(3px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
     </style>
 </head>
 <body onload="initGame();">
@@ -100,13 +98,13 @@
                 <div class="info-row"><span>NEW_LVL:</span><span id="stat-lvl" style="color:var(--gold)">--</span></div>
                 <div class="info-row"><span>CREDITS:</span><span id="stat-coins" style="color:var(--gold)">--</span></div>
                 <div class="info-row"><span>XP_GAIN:</span><span id="stat-xp" style="color:var(--xp-color)">--</span></div>
-                <button class="hub-btn" onclick="window.location.href='index.html'">RETURN TO HUB</button>
+                <button class="hub-btn" onclick="window.location.href='/'">RETURN TO HUB</button>
             </div>
 
             <div id="loss-panel">
                 <div class="loss-title">SYSTEM FAILURE</div>
                 <p style="font-family:'Fira Code'; color:var(--red); font-size:1.5rem;">NEURAL_LINK_SEVERED</p>
-                <button class="hub-btn" style="background:var(--red); color:white;" onclick="window.location.href='index.html'">REBOOT SYSTEM</button>
+                <button class="hub-btn" style="background:var(--red); color:white;" onclick="window.location.href='/'">REBOOT SYSTEM</button>
             </div>
         </div>
     </div>
@@ -119,21 +117,10 @@
     const API_URL = window.location.origin;
     const MAX_LEVEL = 10000;
     
-    let localData = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, prestige: 0 };
-    
-    // --- SKIN INJECTOR SYSTEM ---
-    const activeSkin = localData.equippedSkin || { 
-        primary: '#ff0055', 
-        secondary: 'rgba(255, 0, 85, 0.4)', 
-        emoji: '🔘' 
-    };
-    
-    // Overwrite CSS colors with Skin choice
-    document.documentElement.style.setProperty('--red', activeSkin.primary);
-    let mySkin = activeSkin.emoji;
-    // ----------------------------
+    // Default Skin fallback
+    let mySkin = "🔘";
+    let activeSkin = { primary: '#ff0055', secondary: 'rgba(255, 0, 85, 0.4)', emoji: '🔘' };
 
-    let prestigeMult = 1 + ((localData.prestige || 0) * 0.5);
     let turn = 1; 
     let scores = { 1: 0, 2: 0 };
     let linesTaken = {};
@@ -142,6 +129,24 @@
     let bossTimeLeft = 30.0;
     let attacksLanded = 0;
     let particles = [];
+
+    // --- NEURAL SYNC (Loads Skin from Database) ---
+    async function neuralSync() {
+        if (!currentUser) return;
+        try {
+            const response = await fetch(`${API_URL}/get-skin/${currentUser}`);
+            const result = await response.json();
+            if (result.success && result.skin) {
+                activeSkin = result.skin;
+                mySkin = activeSkin.emoji;
+                // Inject the Primary Color into CSS
+                document.documentElement.style.setProperty('--red', activeSkin.primary);
+                console.log(">> NEURAL_LINK: Skin Synchronized.");
+            }
+        } catch (e) {
+            console.error(">> SYNC_ERROR: Falling back to local cache.");
+        }
+    }
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(freq, type, duration, vol = 0.1) {
@@ -158,8 +163,9 @@
         osc.stop(audioCtx.currentTime + duration);
     }
 
-    function initGame() {
-        if (!currentUser) { window.location.href = "index.html"; return; }
+    async function initGame() {
+        if (!currentUser) { window.location.href = "/"; return; }
+        await neuralSync(); // WAIT for the skin to load from DB
         document.getElementById('pilot-name').innerText = currentUser.toUpperCase();
         initLayout();
         initMatrix();
@@ -167,6 +173,7 @@
         initQuestHUD();
     }
 
+    // Quest and Game Logic...
     let activeQuests = [];
     function initQuestHUD() {
         const key = `titan_quests_${currentUser}`;
@@ -198,27 +205,10 @@
             }
         });
         if (changed) {
-            const key = `titan_quests_${currentUser}`;
-            const qData = JSON.parse(localStorage.getItem(key));
-            qData.quests = activeQuests;
-            localStorage.setItem(key, JSON.stringify(qData));
+            localStorage.setItem(`titan_quests_${currentUser}`, JSON.stringify({quests: activeQuests}));
             renderQuestHUD();
         }
     }
-
-    window.addEventListener('keydown', (e) => {
-        if (e.key === "F6" && !gameEnded) {
-            playSound(1000, 'square', 0.5, 0.2);
-            document.querySelectorAll('.box:not(.filled)').forEach(box => {
-                box.classList.add('filled', 'p1');
-                box.innerText = mySkin;
-                scores[1]++;
-            });
-            document.querySelectorAll('.line').forEach(l => l.classList.add('taken', 'p1'));
-            document.getElementById('s1').innerText = scores[1];
-            triggerBossFight();
-        }
-    });
 
     function initLayout() {
         const b = document.getElementById('board');
@@ -277,7 +267,7 @@
                 if (box && !box.classList.contains('filled')) {
                     if (linesTaken[`h-${r-1}-${c}`] && linesTaken[`h-${r+1}-${c}`] && linesTaken[`v-${r}-${c-1}`] && linesTaken[`v-${r}-${c+1}`]) {
                         box.classList.add('filled', turn === 1 ? 'p1' : 'p2');
-                        if (turn === 1) box.innerText = mySkin;
+                        if (turn === 1) box.innerText = mySkin; // APPLY SKIN EMOJI
                         scores[turn]++;
                         earned++;
                     }
@@ -335,7 +325,6 @@
         ashMode = true; 
         document.getElementById('boss-overlay').style.display = 'flex';
         document.body.style.animation = "shake 0.1s infinite";
-        playSound(100, 'sawtooth', 1, 0.3);
         const timer = setInterval(() => {
             bossTimeLeft -= 0.05;
             document.getElementById('b-timer').innerText = Math.max(0, bossTimeLeft).toFixed(2);
@@ -366,38 +355,31 @@
         document.body.style.animation = "none";
         document.getElementById('boss-overlay').style.display = 'none';
         document.getElementById('info-panel').style.display = 'flex';
-        playSound(1200, 'sine', 0.5, 0.2);
         updateQuestProgress('BOSS', 1);
-        let xpEarned = Math.floor((scores[1] * 10) * prestigeMult);
+        let xpEarned = scores[1] * 10;
         const coinsEarned = 20;
-        updateQuestProgress('XP', xpEarned);
-        updateQuestProgress('WIN', 1);
 
         try {
-            let data = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, xp: 0, wins: 0, streak: 0 };
-            data.wins = (data.wins || 0) + 1;
-            data.streak = (data.streak || 0) + 1;
+            let data = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, xp: 0, wins: 0 };
             data.xp += xpEarned;
-            let nextLevelXP = 100 + (data.level - 1) * 50;
-            while (data.xp >= nextLevelXP && data.level < MAX_LEVEL) {
-                data.xp -= nextLevelXP; 
-                data.level++;            
-                nextLevelXP = 100 + (data.level - 1) * 50;
-            }
+            data.wins++;
+            data.equippedSkin = activeSkin; // Keep skin persistent
+
             document.getElementById('final-id').innerText = currentUser;
             document.getElementById('stat-lvl').innerText = data.level;
-            document.getElementById('stat-xp').innerText = `+${xpEarned} (x${prestigeMult})`;
+            document.getElementById('stat-xp').innerText = `+${xpEarned}`;
             document.getElementById('stat-coins').innerText = `+${coinsEarned}₮`;
-            sessionStorage.setItem('titan_data', JSON.stringify(data));
+
+            // Save Progress
             await fetch(`${API_URL}/save`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: currentUser, data: data }) });
+            // Save Coins
             const cRes = await fetch(`${API_URL}/get-coins/${currentUser}`);
             const cData = await cRes.json();
-            const newCoinTotal = (cData.coins || 0) + coinsEarned;
-            await fetch(`${API_URL}/update-coins`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: currentUser, coins: newCoinTotal }) });
-        } catch(e) { console.error("SYNC_ERROR: ", e); }
+            await fetch(`${API_URL}/update-coins`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: currentUser, coins: (cData.coins || 0) + coinsEarned }) });
+        } catch(e) { console.error(e); }
     }
 
-    function showLoss() { ashMode = false; document.body.style.animation = "none"; document.getElementById('boss-overlay').style.display = 'none'; document.getElementById('loss-panel').style.display = 'flex'; playSound(80, 'sawtooth', 0.8, 0.3); }
+    function showLoss() { ashMode = false; document.body.style.animation = "none"; document.getElementById('boss-overlay').style.display = 'none'; document.getElementById('loss-panel').style.display = 'flex'; }
 
     function initMatrix() {
         const c = document.getElementById('bg-canvas'), x = c.getContext('2d');
@@ -405,7 +387,7 @@
         const drops = Array(Math.floor(c.width/20)).fill(1);
         setInterval(() => {
             x.fillStyle = "rgba(5,5,8,0.1)"; x.fillRect(0,0,c.width,c.height);
-            x.fillStyle = activeSkin.primary; // MATRIX NOW MATCHES SKIN
+            x.fillStyle = activeSkin.primary; 
             x.font = "15px monospace";
             drops.forEach((d, i) => { x.fillText(Math.floor(Math.random()*2), i*20, d*20); if (d*20 > c.height && Math.random() > 0.975) drops[i] = 0; drops[i]++; });
         }, 50);
