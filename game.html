@@ -3,66 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TITAN_OS: COMBAT_CORE</title>
+    <title>TITAN_OS: COMBAT_CORE_V2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Rajdhani:wght@500;700&family=Fira+Code:wght@400;700&display=swap');
         
-        /* CSS variables act as "slots" for the database skins */
         :root { 
-            --bg: #050508; 
-            --red: #ff0055; /* Player Primary - Overwritten by JS */
-            --blue: #00f2ff; /* AI Color */
+            --bg: #020204; 
+            --red: #ff0055; /* Player Primary - Synchronized via DB */
+            --blue: #00f2ff; /* AI Sentinel Color - Fixed to Cyan */
             --gold: #ffcc00; 
             --xp-color: #00ff66; 
-            --glow: rgba(255, 0, 85, 0.5); 
-            --boss-glow: 0px 0px 30px red; 
+            --glow: rgba(255, 0, 85, 0.6); 
+            --boss-glow: 0px 0px 50px #ff0055; 
         }
 
         * { box-sizing: border-box; touch-action: manipulation; user-select: none; }
         body, html { margin: 0; padding: 0; background-color: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; height: 100vh; width: 100vw; overflow: hidden; }
-        #bg-canvas { position: fixed; inset: 0; z-index: -1; opacity: 0.4; }
-        .grid-overlay { position: fixed; inset: 0; background-image: linear-gradient(rgba(0,242,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,0.03) 1px, transparent 1px); background-size: 60px 60px; pointer-events: none; }
+        
+        #bg-canvas { position: fixed; inset: 0; z-index: -1; opacity: 0.3; }
+        .grid-overlay { position: fixed; inset: 0; background-image: linear-gradient(rgba(0,242,255,0.03) 2px, transparent 2px), linear-gradient(90deg, rgba(0,242,255,0.03) 2px, transparent 2px); background-size: 80px 80px; pointer-events: none; }
+        
         #game-interface { position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; }
         #particle-canvas { position: absolute; inset: 0; pointer-events: none; z-index: 2000; }
         
-        .rank-bar { height: 45px; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-size: 0.7rem; letter-spacing: 5px; color: var(--red); z-index: 100; border-bottom: 2px solid #111; }
-        .ui-top { height: 120px; display: flex; justify-content: space-evenly; align-items: center; z-index: 10; }
-        .player-card { padding: 20px 40px; background: rgba(0,0,0,0.8); border: 2px solid #222; min-width: 220px; text-align: center; position: relative; transition: 0.3s; }
+        /* Rank bar made larger and more prominent */
+        .rank-bar { height: 60px; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-size: 1rem; letter-spacing: 8px; color: var(--red); z-index: 100; border-bottom: 3px solid #111; text-transform: uppercase; }
         
-        .player-card.active.p1 { border-color: var(--red); box-shadow: 0 0 40px var(--red); transform: scale(1.05); }
-        .player-card.active.p2 { border-color: var(--blue); box-shadow: 0 0 40px rgba(0, 242, 255, 0.3); transform: scale(1.05); }
-        .score { font-size: 4rem; font-weight: 900; font-family: 'Orbitron'; line-height: 1; display: block; }
+        .ui-top { height: 180px; display: flex; justify-content: space-evenly; align-items: center; z-index: 10; padding: 0 50px; }
         
-        #quest-sidebar { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 220px; pointer-events: none; z-index: 50; display: flex; flex-direction: column; gap: 10px; }
-        .hud-quest { background: rgba(0,0,0,0.7); border-right: 2px solid var(--red); padding: 10px; font-family: 'Fira Code'; font-size: 0.7rem; color: #aaa; text-align: right; transition: 0.3s; opacity: 0.7; }
-        .hud-quest.active { border-color: var(--gold); color: white; opacity: 1; text-shadow: 0 0 5px var(--gold); }
-        .hud-quest.completed { border-color: var(--xp-color); color: var(--xp-color); text-decoration: line-through; }
+        /* Player cards scaled up */
+        .player-card { padding: 30px 60px; background: rgba(0,0,0,0.85); border: 4px solid #222; min-width: 320px; text-align: center; position: relative; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .player-card.p1 { border-color: #333; }
+        .player-card.p2 { border-color: #333; }
+        
+        .player-card.active.p1 { border-color: var(--red); box-shadow: 0 0 60px var(--red); transform: scale(1.15); }
+        .player-card.active.p2 { border-color: var(--blue); box-shadow: 0 0 60px var(--blue); transform: scale(1.15); }
+        
+        .score { font-size: 6rem; font-weight: 900; font-family: 'Orbitron'; line-height: 1; display: block; margin-bottom: 5px; }
+        small { font-family: 'Fira Code'; font-size: 1rem; letter-spacing: 3px; color: #888; }
+        
+        #quest-sidebar { position: absolute; right: 30px; top: 55%; transform: translateY(-50%); width: 300px; pointer-events: none; z-index: 50; display: flex; flex-direction: column; gap: 15px; }
+        .hud-quest { background: rgba(0,0,0,0.8); border-right: 5px solid var(--red); padding: 15px; font-family: 'Fira Code'; font-size: 0.9rem; color: #ccc; text-align: right; transition: 0.3s; box-shadow: -10px 0 20px rgba(0,0,0,0.5); }
+        .hud-quest.active { border-color: var(--gold); color: white; opacity: 1; text-shadow: 0 0 10px var(--gold); }
+        .hud-quest.completed { border-color: var(--xp-color); color: var(--xp-color); text-decoration: line-through; opacity: 0.5; }
 
-        .stage { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
-        #board { display: grid; background: #000; padding: 15px; border: 2px solid #1a1a1a; box-shadow: 0 0 50px rgba(0,0,0,1); }
-        .dot { width: 12px; height: 12px; background: #444; border-radius: 50%; z-index: 3; }
-        .line { background: #1a1a1a; cursor: pointer; z-index: 2; transition: background 0.2s, box-shadow 0.2s; border-radius: 2px; }
-        .line:hover:not(.taken) { background: #333; }
+        .stage { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; padding: 20px; }
+        #board { display: grid; background: #000; padding: 25px; border: 4px solid #1a1a1a; box-shadow: 0 0 100px rgba(0,0,0,1); }
         
-        .line.taken.p1 { background: var(--red) !important; box-shadow: 0 0 20px var(--red); }
-        .line.taken.p2 { background: var(--blue) !important; box-shadow: 0 0 20px var(--blue); }
+        .dot { width: 16px; height: 16px; background: #555; border-radius: 50%; z-index: 3; box-shadow: 0 0 5px black; }
+        .line { background: #1a1a1a; cursor: pointer; z-index: 2; transition: background 0.2s, box-shadow 0.2s; border-radius: 4px; }
+        .line:hover:not(.taken) { background: #444; }
         
-        .box { transition: background 0.4s, opacity 0.4s; opacity: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
-        .box.filled { opacity: 0.9 !important; } 
-        .box.filled.p1 { background: var(--red) !important; box-shadow: inset 0 0 40px rgba(0,0,0,0.6); text-shadow: 0 0 10px black; }
-        .box.filled.p2 { background: var(--blue) !important; box-shadow: inset 0 0 40px #004; }
+        /* Line colors logic reinforced */
+        .line.taken.p1 { background: var(--red) !important; box-shadow: 0 0 25px var(--red); }
+        .line.taken.p2 { background: var(--blue) !important; box-shadow: 0 0 25px var(--blue); }
+        
+        .box { transition: background 0.5s, opacity 0.5s; opacity: 0; pointer-events: none; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+        .box.filled { opacity: 1 !important; } 
+        .box.filled.p1 { background: var(--red) !important; box-shadow: inset 0 0 60px rgba(0,0,0,0.7); text-shadow: 0 0 15px black; }
+        .box.filled.p2 { background: var(--blue) !important; box-shadow: inset 0 0 60px rgba(0,0,0,0.7); text-shadow: 0 0 15px black; }
 
-        #boss-overlay { position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; background: radial-gradient(circle, rgba(30,0,0,0.98) 0%, #000 100%); }
-        #ascii-skull { font-family: 'Fira Code'; color: var(--red); font-size: 10px; line-height: 9px; white-space: pre; z-index: 2; text-shadow: var(--boss-glow); text-align: center; }
-        .pixel-target { position: absolute; width: 60px; height: 60px; background: var(--red); border: 5px solid #fff; border-radius: 50%; z-index: 2500; box-shadow: 0 0 50px var(--red); cursor: crosshair; }
-        #info-panel, #loss-panel { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; border: 15px solid var(--xp-color); box-shadow: inset 0 0 120px var(--xp-color); }
-        #loss-panel { border-color: var(--red); box-shadow: inset 0 0 120px var(--red); }
-        .escape-title { font-family: 'Orbitron'; font-size: 4rem; color: var(--xp-color); text-shadow: 0 0 40px var(--xp-color); margin: 0; }
-        .loss-title { font-family: 'Orbitron'; font-size: 4rem; color: var(--red); text-shadow: 0 0 40px var(--red); margin: 0; }
-        .info-row { width: 550px; padding: 15px; border-bottom: 2px solid #222; font-family: 'Fira Code'; display: flex; justify-content: space-between; font-size: 1.2rem; }
-        button.hub-btn { margin-top:30px; background:var(--xp-color); color:black; padding:20px 60px; font-family:'Orbitron'; border:none; cursor:pointer; font-weight:900; font-size:1.2rem; transition: 0.3s; }
-        button.hub-btn:hover { box-shadow: 0 0 30px var(--xp-color); transform: scale(1.05); }
-        @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+        /* Boss Fight Overlay - Made more terrifying */
+        #boss-overlay { position: absolute; inset: 0; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; background: radial-gradient(circle, rgba(40,0,0,1) 0%, #000 100%); border: 20px solid #ff0000; }
+        #ascii-skull { font-family: 'Fira Code'; color: var(--red); font-size: 14px; line-height: 12px; white-space: pre; z-index: 2; text-shadow: var(--boss-glow); text-align: center; margin-bottom: 20px; }
+        .pixel-target { position: absolute; width: 80px; height: 80px; background: #fff; border: 8px solid var(--red); border-radius: 50%; z-index: 2500; box-shadow: 0 0 80px var(--red); cursor: crosshair; }
+        
+        /* Panels scaled for visibility */
+        #info-panel, #loss-panel { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; border: 25px solid var(--xp-color); box-shadow: inset 0 0 200px var(--xp-color); }
+        #loss-panel { border-color: var(--red); box-shadow: inset 0 0 200px var(--red); }
+        
+        .escape-title { font-family: 'Orbitron'; font-size: 6rem; color: var(--xp-color); text-shadow: 0 0 60px var(--xp-color); margin: 0; }
+        .loss-title { font-family: 'Orbitron'; font-size: 6rem; color: var(--red); text-shadow: 0 0 60px var(--red); margin: 0; }
+        
+        .info-row { width: 700px; padding: 25px; border-bottom: 3px solid #222; font-family: 'Fira Code'; display: flex; justify-content: space-between; font-size: 1.8rem; }
+        
+        button.hub-btn { margin-top: 50px; background: var(--xp-color); color: black; padding: 30px 100px; font-family: 'Orbitron'; border: none; cursor: pointer; font-weight: 900; font-size: 2rem; transition: 0.4s; letter-spacing: 5px; }
+        button.hub-btn:hover { box-shadow: 0 0 50px var(--xp-color); transform: scale(1.1) translateY(-5px); }
+        
+        @keyframes shake { 0% { transform: translate(2px, 2px); } 20% { transform: translate(-2px, -4px); } 40% { transform: translate(-6px, 0px); } 60% { transform: translate(6px, 4px); } 80% { transform: translate(-2px, 2px); } 100% { transform: translate(2px, -4px); } }
     </style>
 </head>
 <body onload="initGame();">
@@ -71,53 +89,67 @@
     <div class="grid-overlay"></div>
 
     <div id="game-interface">
-        <div class="rank-bar">THREAT_LEVEL: CRITICAL | SYNC_RATE: 98% | PILOT: <span id="pilot-name">---</span></div>
+        <div class="rank-bar">THREAT_LEVEL: OMEGA | NEURAL_SYNC: 100% | PILOT: <span id="pilot-name" style="margin-left:15px; text-decoration: underline;">---</span></div>
         <canvas id="particle-canvas"></canvas>
 
         <div class="ui-top">
-            <div id="p1-card" class="player-card p1 active"><span id="s1" class="score">0</span><small>PILOT_UNIT</small></div>
-            <div id="p2-card" class="player-card p2"><span id="s2" class="score">0</span><small>AI_SENTINEL</small></div>
+            <div id="p1-card" class="player-card p1 active">
+                <span id="s1" class="score">0</span>
+                <small>HUMAN_PILOT</small>
+            </div>
+            <div id="p2-card" class="player-card p2">
+                <span id="s2" class="score">0</span>
+                <small>AI_SENTINEL_X</small>
+            </div>
         </div>
 
         <div id="quest-sidebar">
-            <div style="text-align:right; font-family:'Orbitron'; color:var(--red); font-size:0.8rem; border-bottom:1px solid var(--red); padding-bottom:5px;">TACTICAL_OBJECTIVES</div>
+            <div style="text-align:right; font-family:'Orbitron'; color:var(--red); font-size:1.1rem; border-bottom:2px solid var(--red); padding-bottom:10px; letter-spacing:3px;">ACTIVE_MISSIONS</div>
             <div id="hud-quest-list"></div>
         </div>
 
         <div class="stage">
             <div id="board"></div>
+            
             <div id="boss-overlay">
-                <div id="ascii-skull">XXXXXX<br>XXXXXXXX<br>XX  XX  XX<br>NEURAL_CORRUPTION</div>
-                <div style="font-family:'Orbitron'; font-size:5rem; margin:25px; text-shadow:0 0 30px red;" id="b-timer">30.00</div>
-                <div style="font-family:'Orbitron'; color:var(--gold); font-size:1.8rem; letter-spacing:3px;">ATTACKS LANDED: <span id="px-score">0</span> / 15</div>
+                <div id="ascii-skull">
+     @@@@@@@@@@@@@@@@@@
+   @@@@@@@@@@@@@@@@@@@@@@
+  @@@@@@@@@@@@@@@@@@@@@@@@
+ @@@      @@@@@@      @@@
+ @@@      @@@@@@      @@@
+ @@@@@@@@@@@@@@@@@@@@@@@@
+   @@@@@@  @@@@  @@@@@@
+     @@@@@@@@@@@@@@@@
+                </div>
+                <div style="font-family:'Orbitron'; font-size:8rem; margin:20px; text-shadow:0 0 50px red; color:white;" id="b-timer">30.00</div>
+                <div style="font-family:'Orbitron'; color:var(--gold); font-size:2.5rem; letter-spacing:5px;">NEURAL HITS: <span id="px-score" style="font-size:4rem;">0</span> / 15</div>
             </div>
 
             <div id="info-panel">
-                <div class="escape-title">YOU ESCAPED</div>
+                <div class="escape-title">SYSTEM_PURIFIED</div>
                 <div class="info-row"><span>PILOT_ID:</span><span id="final-id" style="color:var(--red)">---</span></div>
-                <div class="info-row"><span>NEW_LVL:</span><span id="stat-lvl" style="color:var(--gold)">--</span></div>
-                <div class="info-row"><span>CREDITS:</span><span id="stat-coins" style="color:var(--gold)">--</span></div>
-                <div class="info-row"><span>XP_GAIN:</span><span id="stat-xp" style="color:var(--xp-color)">--</span></div>
-                <button class="hub-btn" onclick="window.location.href='/'">RETURN TO HUB</button>
+                <div class="info-row"><span>CURRENT_LVL:</span><span id="stat-lvl" style="color:var(--gold)">--</span></div>
+                <div class="info-row"><span>CREDITS_GAINED:</span><span id="stat-coins" style="color:var(--gold)">--</span></div>
+                <div class="info-row"><span>XP_SYNC:</span><span id="stat-xp" style="color:var(--xp-color)">--</span></div>
+                <button class="hub-btn" onclick="window.location.href='/'">RETURN TO COMMAND</button>
             </div>
 
             <div id="loss-panel">
-                <div class="loss-title">SYSTEM FAILURE</div>
-                <p style="font-family:'Fira Code'; color:var(--red); font-size:1.5rem;">NEURAL_LINK_SEVERED</p>
-                <button class="hub-btn" style="background:var(--red); color:white;" onclick="window.location.href='/'">REBOOT SYSTEM</button>
+                <div class="loss-title">FATAL_ERROR</div>
+                <p style="font-family:'Fira Code'; color:var(--red); font-size:2.5rem; margin: 30px 0;">NEURAL_CONNECTION_OVERLOAD</p>
+                <button class="hub-btn" style="background:var(--red); color:white;" onclick="window.location.href='/'">REBOOT_CORE</button>
             </div>
         </div>
     </div>
 
 <script>
-    // --- CONFIG & STATE ---
     const DOTS = 8;
     const boardSize = (DOTS-1) * (DOTS-1);
     const currentUser = sessionStorage.getItem('titan_user');
     const API_URL = window.location.origin;
     const MAX_LEVEL = 10000;
     
-    // Default Skin fallback
     let mySkin = "🔘";
     let activeSkin = { primary: '#ff0055', secondary: 'rgba(255, 0, 85, 0.4)', emoji: '🔘' };
 
@@ -130,7 +162,7 @@
     let attacksLanded = 0;
     let particles = [];
 
-    // --- NEURAL SYNC (Loads Skin from Database) ---
+    // --- DB SKIN INTEGRATION (FIXED COLORS) ---
     async function neuralSync() {
         if (!currentUser) return;
         try {
@@ -139,12 +171,12 @@
             if (result.success && result.skin) {
                 activeSkin = result.skin;
                 mySkin = activeSkin.emoji;
-                // Inject the Primary Color into CSS
+                // Force Player color to database value, AI color remains --blue (Cyan)
                 document.documentElement.style.setProperty('--red', activeSkin.primary);
-                console.log(">> NEURAL_LINK: Skin Synchronized.");
+                console.log(">> SYSTEM: Neural skin link established.");
             }
         } catch (e) {
-            console.error(">> SYNC_ERROR: Falling back to local cache.");
+            console.error(">> SYSTEM_ERROR: Sync failed. Loading default safety protocols.");
         }
     }
 
@@ -165,7 +197,7 @@
 
     async function initGame() {
         if (!currentUser) { window.location.href = "/"; return; }
-        await neuralSync(); // WAIT for the skin to load from DB
+        await neuralSync(); 
         document.getElementById('pilot-name').innerText = currentUser.toUpperCase();
         initLayout();
         initMatrix();
@@ -173,7 +205,6 @@
         initQuestHUD();
     }
 
-    // Quest and Game Logic...
     let activeQuests = [];
     function initQuestHUD() {
         const key = `titan_quests_${currentUser}`;
@@ -190,7 +221,7 @@
             const pct = Math.floor((q.progress / q.target) * 100);
             return `<div class="hud-quest ${q.progress >= q.target ? 'completed' : 'active'}">
                 ${q.desc}<br>
-                <span style="font-size:0.6rem">[${q.progress}/${q.target}] ${pct}%</span>
+                <span style="font-size:0.8rem; letter-spacing:1px;">PROGRESS: [${q.progress}/${q.target}] ${pct}%</span>
             </div>`;
         }).join('');
     }
@@ -213,12 +244,14 @@
     function initLayout() {
         const b = document.getElementById('board');
         const s = document.querySelector('.stage');
-        const availableSize = Math.min(s.offsetHeight - 40, s.offsetWidth - 40);
-        const dW = 12;
+        const availableSize = Math.min(s.offsetHeight - 60, s.offsetWidth - 350); 
+        const dW = 16;
         const bW = Math.floor((availableSize - (DOTS * dW)) / (DOTS - 1));
+        
         b.style.gridTemplateColumns = `repeat(${DOTS-1}, ${dW}px ${bW}px) ${dW}px`;
         b.style.gridTemplateRows = `repeat(${DOTS-1}, ${dW}px ${bW}px) ${dW}px`;
         b.innerHTML = '';
+        
         for (let r=0; r < 2*DOTS-1; r++) {
             for (let c=0; c < 2*DOTS-1; c++) {
                 const cell = document.createElement('div');
@@ -241,14 +274,19 @@
     }
 
     function processMove(el, id) {
-        el.classList.add('taken', turn === 1 ? 'p1' : 'p2');
+        // TURN 1 = PLAYER (Red/Skin), TURN 2 = AI (Blue/Cyan)
+        const playerClass = turn === 1 ? 'p1' : 'p2';
+        el.classList.add('taken', playerClass);
         linesTaken[id] = turn;
-        playSound(turn === 1 ? 440 : 330, 'square', 0.1); 
+        
+        playSound(turn === 1 ? 440 : 220, 'square', 0.15); 
+        
         const earned = checkBoxes(); 
         if (earned > 0) {
-            playSound(880, 'sine', 0.3, 0.2);
+            playSound(turn === 1 ? 880 : 110, 'sine', 0.4, 0.2);
             const rect = el.getBoundingClientRect();
-            explode(rect.left, rect.top, turn===1? activeSkin.primary :'#00f2ff');
+            explode(rect.left, rect.top, turn === 1 ? activeSkin.primary : '#00f2ff');
+            
             if (scores[1] + scores[2] === boardSize) triggerBossFight();
             else if (turn === 2) setTimeout(aiMove, 600);
         } else {
@@ -267,7 +305,8 @@
                 if (box && !box.classList.contains('filled')) {
                     if (linesTaken[`h-${r-1}-${c}`] && linesTaken[`h-${r+1}-${c}`] && linesTaken[`v-${r}-${c-1}`] && linesTaken[`v-${r}-${c+1}`]) {
                         box.classList.add('filled', turn === 1 ? 'p1' : 'p2');
-                        if (turn === 1) box.innerText = mySkin; // APPLY SKIN EMOJI
+                        if (turn === 1) box.innerText = mySkin;
+                        else box.innerText = "🤖"; // AI Marker
                         scores[turn]++;
                         earned++;
                     }
@@ -283,6 +322,7 @@
         if (gameEnded || turn === 1) return;
         const allLines = Array.from(document.querySelectorAll('.line:not(.taken)'));
         if (allLines.length === 0) return;
+        
         let move = findCompletingMove() || findSafeMove(allLines);
         if (!move) move = allLines[Math.floor(Math.random() * allLines.length)];
         processMove(move, move.dataset.id);
@@ -324,30 +364,38 @@
         if (scores[1] <= scores[2]) { showLoss(); return; } 
         ashMode = true; 
         document.getElementById('boss-overlay').style.display = 'flex';
-        document.body.style.animation = "shake 0.1s infinite";
+        document.body.style.animation = "shake 0.15s infinite";
+        
         const timer = setInterval(() => {
             bossTimeLeft -= 0.05;
             document.getElementById('b-timer').innerText = Math.max(0, bossTimeLeft).toFixed(2);
-            if (bossTimeLeft <= 0) { clearInterval(timer); if (attacksLanded < 15) showLoss(); }
+            if (bossTimeLeft <= 0) { 
+                clearInterval(timer); 
+                if (attacksLanded < 15) showLoss(); 
+            }
             if (!ashMode) clearInterval(timer);
         }, 50);
-        const spawner = setInterval(() => { if (ashMode && attacksLanded < 15) spawnTarget(); else clearInterval(spawner); }, 1000);
+        
+        const spawner = setInterval(() => { 
+            if (ashMode && attacksLanded < 15) spawnTarget(); 
+            else clearInterval(spawner); 
+        }, 800);
     }
 
     function spawnTarget() {
         const t = document.createElement('div');
         t.className = 'pixel-target'; 
-        t.style.left = Math.random()*80+10+'%'; 
-        t.style.top = Math.random()*80+10+'%';
+        t.style.left = Math.random()*70+15+'%'; 
+        t.style.top = Math.random()*70+15+'%';
         t.onclick = () => { 
             attacksLanded++; 
-            playSound(600 + (attacksLanded * 20), 'triangle', 0.1);
+            playSound(500 + (attacksLanded * 50), 'triangle', 0.2);
             document.getElementById('px-score').innerText = attacksLanded; 
             t.remove(); 
             if(attacksLanded >= 15) showEscape(); 
         };
         document.getElementById('boss-overlay').appendChild(t);
-        setTimeout(() => { if(t) t.remove(); }, 1500);
+        setTimeout(() => { if(t) t.remove(); }, 1200);
     }
 
     async function showEscape() {
@@ -356,48 +404,65 @@
         document.getElementById('boss-overlay').style.display = 'none';
         document.getElementById('info-panel').style.display = 'flex';
         updateQuestProgress('BOSS', 1);
-        let xpEarned = scores[1] * 10;
-        const coinsEarned = 20;
+        
+        let xpEarned = scores[1] * 25;
+        const coinsEarned = 50;
 
         try {
             let data = JSON.parse(sessionStorage.getItem('titan_data')) || { level: 1, xp: 0, wins: 0 };
             data.xp += xpEarned;
             data.wins++;
-            data.equippedSkin = activeSkin; // Keep skin persistent
-
+            
             document.getElementById('final-id').innerText = currentUser;
             document.getElementById('stat-lvl').innerText = data.level;
-            document.getElementById('stat-xp').innerText = `+${xpEarned}`;
+            document.getElementById('stat-xp').innerText = `+${xpEarned} XP`;
             document.getElementById('stat-coins').innerText = `+${coinsEarned}₮`;
 
-            // Save Progress
             await fetch(`${API_URL}/save`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: currentUser, data: data }) });
-            // Save Coins
             const cRes = await fetch(`${API_URL}/get-coins/${currentUser}`);
             const cData = await cRes.json();
             await fetch(`${API_URL}/update-coins`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ username: currentUser, coins: (cData.coins || 0) + coinsEarned }) });
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error("SYNC_CRITICAL_FAILURE: ", e); }
     }
 
-    function showLoss() { ashMode = false; document.body.style.animation = "none"; document.getElementById('boss-overlay').style.display = 'none'; document.getElementById('loss-panel').style.display = 'flex'; }
+    function showLoss() { ashMode = false; document.body.style.animation = "none"; document.getElementById('boss-overlay').style.display = 'none'; document.getElementById('loss-panel').style.display = 'flex'; playSound(50, 'sawtooth', 1.0, 0.4); }
 
     function initMatrix() {
         const c = document.getElementById('bg-canvas'), x = c.getContext('2d');
         c.width = window.innerWidth; c.height = window.innerHeight;
-        const drops = Array(Math.floor(c.width/20)).fill(1);
+        const drops = Array(Math.floor(c.width/25)).fill(1);
         setInterval(() => {
-            x.fillStyle = "rgba(5,5,8,0.1)"; x.fillRect(0,0,c.width,c.height);
+            x.fillStyle = "rgba(2,2,4,0.15)"; x.fillRect(0,0,c.width,c.height);
             x.fillStyle = activeSkin.primary; 
-            x.font = "15px monospace";
-            drops.forEach((d, i) => { x.fillText(Math.floor(Math.random()*2), i*20, d*20); if (d*20 > c.height && Math.random() > 0.975) drops[i] = 0; drops[i]++; });
-        }, 50);
+            x.font = "20px monospace";
+            drops.forEach((d, i) => { 
+                const text = String.fromCharCode(0x30A0 + Math.random() * 96);
+                x.fillText(text, i*25, d*25); 
+                if (d*25 > c.height && Math.random() > 0.975) drops[i] = 0; 
+                drops[i]++; 
+            });
+        }, 60);
     }
-    function explode(x, y, color) { for(let i=0; i<15; i++) { particles.push({ x, y, c: color, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, a: 1 }); } }
+
+    function explode(x, y, color) { 
+        for(let i=0; i<30; i++) { 
+            particles.push({ x, y, c: color, vx: (Math.random()-0.5)*15, vy: (Math.random()-0.5)*15, a: 1 }); 
+        } 
+    }
+
     function animateParticles() {
         const c = document.getElementById('particle-canvas'), x = c.getContext('2d');
         c.width = window.innerWidth; c.height = window.innerHeight;
         x.clearRect(0,0,c.width,c.height);
-        particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.a -= 0.02; x.globalAlpha = p.a; x.fillStyle = p.c; x.fillRect(p.x, p.y, 4, 4); if(p.a <= 0) particles.splice(i, 1); });
+        particles.forEach((p, i) => { 
+            p.x += p.vx; p.y += p.vy; p.a -= 0.015; 
+            x.globalAlpha = p.a; 
+            x.fillStyle = p.c; 
+            x.shadowBlur = 10;
+            x.shadowColor = p.c;
+            x.fillRect(p.x, p.y, 6, 6); 
+            if(p.a <= 0) particles.splice(i, 1); 
+        });
         requestAnimationFrame(animateParticles);
     }
 </script>
